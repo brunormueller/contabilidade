@@ -1,609 +1,2135 @@
 <!doctype html>
 <html lang="pt-BR">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Notas e Financeiro</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
-<style>
-:root{
-  --bg:#F3F4F6; --surface:#FFFFFF; --surface-2:#F0F2F5; --ink:#101828; --ink-2:#475467; --ink-3:#7A8599;
-  --line:#E3E6EB; --line-2:#D3D8E0;
-  --navy:#0E1A2C; --navy-2:#18263C; --on-navy:#EDF1F7; --on-navy-2:#93A0B6; --brass:#C2A15E; --brass-ink:#1E1709;
-  --brand:#14233B; --brand-ink:#FFFFFF; --brand-soft:#E9EDF4;
-  --ok:#17744A; --ok-soft:#E3F3EA; --warn:#8F5E0C; --warn-soft:#FBF0DA; --bad:#B42318; --bad-soft:#FBE6E3;
-  --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 24px -8px rgba(16,24,40,.08);
-  --serif:"Instrument Serif",Georgia,"Times New Roman",serif;
-  color-scheme:light;
-  box-sizing:border-box;
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-}
-@media (prefers-color-scheme: dark){
-  :root:not([data-theme="light"]){
-    --bg:#0B111A; --surface:#121A26; --surface-2:#19222F; --ink:#E9EDF3; --ink-2:#B1BBCA; --ink-3:#8692A5;
-    --line:#232D3B; --line-2:#2E3A4B;
-    --navy:#080D15; --navy-2:#121B28; --on-navy:#E9EDF3; --on-navy-2:#8692A5; --brass:#D4B676; --brass-ink:#1E1709;
-    --brand:#D4B676; --brand-ink:#1E1709; --brand-soft:#2A2618;
-    --ok:#6FCB98; --ok-soft:#14301F; --warn:#E6B66A; --warn-soft:#352812; --bad:#F2877D; --bad-soft:#3A1A17;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -10px rgba(0,0,0,.5);
-    color-scheme:dark;
-  }
-}
-:root[data-theme="dark"]{
-  --bg:#0B111A; --surface:#121A26; --surface-2:#19222F; --ink:#E9EDF3; --ink-2:#B1BBCA; --ink-3:#8692A5;
-  --line:#232D3B; --line-2:#2E3A4B;
-  --navy:#080D15; --navy-2:#121B28; --on-navy:#E9EDF3; --on-navy-2:#8692A5; --brass:#D4B676; --brass-ink:#1E1709;
-  --brand:#D4B676; --brand-ink:#1E1709; --brand-soft:#2A2618;
-  --ok:#6FCB98; --ok-soft:#14301F; --warn:#E6B66A; --warn-soft:#352812; --bad:#F2877D; --bad-soft:#3A1A17;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px -10px rgba(0,0,0,.5);
-  color-scheme:dark;
-}
-html{scroll-padding-top:env(safe-area-inset-top,0px);background:var(--bg)}
-*,*::before,*::after{box-sizing:inherit}
-body{margin:0;background:var(--bg);color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums;-webkit-text-size-adjust:100%;-webkit-font-smoothing:antialiased}
-img{max-width:100%}
-button,input,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
-[hidden]{display:none!important}
-svg.i{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>Notas e Financeiro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <style>
+      :root {
+        --bg: #f3f4f6;
+        --surface: #ffffff;
+        --surface-2: #f0f2f5;
+        --ink: #101828;
+        --ink-2: #475467;
+        --ink-3: #7a8599;
+        --line: #e3e6eb;
+        --line-2: #d3d8e0;
+        --navy: #0e1a2c;
+        --navy-2: #18263c;
+        --on-navy: #edf1f7;
+        --on-navy-2: #93a0b6;
+        --brass: #c2a15e;
+        --brass-ink: #1e1709;
+        --brand: #14233b;
+        --brand-ink: #ffffff;
+        --brand-soft: #e9edf4;
+        --ok: #17744a;
+        --ok-soft: #e3f3ea;
+        --warn: #8f5e0c;
+        --warn-soft: #fbf0da;
+        --bad: #b42318;
+        --bad-soft: #fbe6e3;
+        --shadow:
+          0 1px 2px rgba(16, 24, 40, 0.05),
+          0 6px 24px -8px rgba(16, 24, 40, 0.08);
+        --serif: "Instrument Serif", Georgia, "Times New Roman", serif;
+        color-scheme: light;
+        box-sizing: border-box;
+        padding-top: env(safe-area-inset-top, 0px);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+          --bg: #0b111a;
+          --surface: #121a26;
+          --surface-2: #19222f;
+          --ink: #e9edf3;
+          --ink-2: #b1bbca;
+          --ink-3: #8692a5;
+          --line: #232d3b;
+          --line-2: #2e3a4b;
+          --navy: #080d15;
+          --navy-2: #121b28;
+          --on-navy: #e9edf3;
+          --on-navy-2: #8692a5;
+          --brass: #d4b676;
+          --brass-ink: #1e1709;
+          --brand: #d4b676;
+          --brand-ink: #1e1709;
+          --brand-soft: #2a2618;
+          --ok: #6fcb98;
+          --ok-soft: #14301f;
+          --warn: #e6b66a;
+          --warn-soft: #352812;
+          --bad: #f2877d;
+          --bad-soft: #3a1a17;
+          --shadow:
+            0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.5);
+          color-scheme: dark;
+        }
+      }
+      :root[data-theme="dark"] {
+        --bg: #0b111a;
+        --surface: #121a26;
+        --surface-2: #19222f;
+        --ink: #e9edf3;
+        --ink-2: #b1bbca;
+        --ink-3: #8692a5;
+        --line: #232d3b;
+        --line-2: #2e3a4b;
+        --navy: #080d15;
+        --navy-2: #121b28;
+        --on-navy: #e9edf3;
+        --on-navy-2: #8692a5;
+        --brass: #d4b676;
+        --brass-ink: #1e1709;
+        --brand: #d4b676;
+        --brand-ink: #1e1709;
+        --brand-soft: #2a2618;
+        --ok: #6fcb98;
+        --ok-soft: #14301f;
+        --warn: #e6b66a;
+        --warn-soft: #352812;
+        --bad: #f2877d;
+        --bad-soft: #3a1a17;
+        --shadow:
+          0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -10px rgba(0, 0, 0, 0.5);
+        color-scheme: dark;
+      }
+      html {
+        scroll-padding-top: env(safe-area-inset-top, 0px);
+        background: var(--bg);
+      }
+      *,
+      *::before,
+      *::after {
+        box-sizing: inherit;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family:
+          "Instrument Sans",
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        font-size: 15px;
+        line-height: 1.5;
+        font-variant-numeric: tabular-nums;
+        -webkit-text-size-adjust: 100%;
+        -webkit-font-smoothing: antialiased;
+      }
+      img {
+        max-width: 100%;
+      }
+      button,
+      input,
+      select {
+        font: inherit;
+        color: inherit;
+      }
+      :focus-visible {
+        outline: 2px solid var(--brass);
+        outline-offset: 2px;
+      }
+      [hidden] {
+        display: none !important;
+      }
+      svg.i {
+        width: 18px;
+        height: 18px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.75;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        flex: none;
+      }
 
-/* login */
-.login{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr)}
-.login-art{background:var(--navy);color:var(--on-navy);padding:48px clamp(32px,5vw,72px);display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
-.login-art::after{content:"";position:absolute;right:-120px;bottom:-120px;width:420px;height:420px;border-radius:50%;border:1px solid rgba(194,161,94,.25);box-shadow:0 0 0 60px rgba(194,161,94,.05),0 0 0 120px rgba(194,161,94,.03)}
-.login-art h2{font-family:var(--serif);font-weight:400;font-size:clamp(36px,4vw,54px);line-height:1.05;margin:0 0 18px;max-width:14ch;letter-spacing:-.01em}
-.login-art p{color:var(--on-navy-2);max-width:40ch;margin:0}
-.login-art .foot{font-size:13px;color:var(--on-navy-2);position:relative;z-index:1}
-.login-form{display:grid;place-items:center;padding:40px 20px;background:var(--bg)}
-.login-card{width:100%;max-width:380px}
-.login-card h1{font-family:var(--serif);font-weight:400;font-size:38px;margin:0 0 6px}
-.login-card .field{margin-bottom:14px}
-.login-card .btn.primary{width:100%;justify-content:center;padding:12px;font-size:15px}
-.loginerr{color:var(--bad);font-size:14px;min-height:21px;margin:0 0 8px}
-.demo{margin-top:28px;border-top:1px solid var(--line);padding-top:18px;font-size:13.5px;color:var(--ink-2)}
-.demo p{margin:0 0 10px}
-.demo .row{gap:8px}
+      /* login */
+      .login {
+        min-height: 100vh;
+        display: grid;
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+      }
+      .login-art {
+        background: var(--navy);
+        color: var(--on-navy);
+        padding: 48px clamp(32px, 5vw, 72px);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        position: relative;
+        overflow: hidden;
+      }
+      .login-art::after {
+        content: "";
+        position: absolute;
+        right: -120px;
+        bottom: -120px;
+        width: 420px;
+        height: 420px;
+        border-radius: 50%;
+        border: 1px solid rgba(194, 161, 94, 0.25);
+        box-shadow:
+          0 0 0 60px rgba(194, 161, 94, 0.05),
+          0 0 0 120px rgba(194, 161, 94, 0.03);
+      }
+      .login-art h2 {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: clamp(36px, 4vw, 54px);
+        line-height: 1.05;
+        margin: 0 0 18px;
+        max-width: 14ch;
+        letter-spacing: -0.01em;
+      }
+      .login-art p {
+        color: var(--on-navy-2);
+        max-width: 40ch;
+        margin: 0;
+      }
+      .login-art .foot {
+        font-size: 13px;
+        color: var(--on-navy-2);
+        position: relative;
+        z-index: 1;
+      }
+      .login-form {
+        display: grid;
+        place-items: center;
+        padding: 40px 20px;
+        background: var(--bg);
+      }
+      .login-card {
+        width: 100%;
+        max-width: 380px;
+      }
+      .login-card h1 {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 38px;
+        margin: 0 0 6px;
+      }
+      .login-card .field {
+        margin-bottom: 14px;
+      }
+      .login-card .btn.primary {
+        width: 100%;
+        justify-content: center;
+        padding: 12px;
+        font-size: 15px;
+      }
+      .loginerr {
+        color: var(--bad);
+        font-size: 14px;
+        min-height: 21px;
+        margin: 0 0 8px;
+      }
+      .demo {
+        margin-top: 28px;
+        border-top: 1px solid var(--line);
+        padding-top: 18px;
+        font-size: 13.5px;
+        color: var(--ink-2);
+      }
+      .demo p {
+        margin: 0 0 10px;
+      }
+      .demo .row {
+        gap: 8px;
+      }
 
-/* shell */
-.app{display:grid;grid-template-columns:256px minmax(0,1fr);min-height:100vh}
-.side{background:var(--navy);color:var(--on-navy);padding:24px 14px 18px;display:flex;flex-direction:column;gap:26px;position:sticky;top:env(safe-area-inset-top,0px);height:100vh;overflow:auto;align-self:start}
-.brand{display:flex;gap:12px;align-items:center;padding:0 8px}
-.mark{width:38px;height:38px;border-radius:10px;background:var(--brass);color:var(--brass-ink);display:grid;place-items:center;font-family:var(--serif);font-size:20px;flex:none}
-.brand b{display:block;font-size:14px;line-height:1.25;font-weight:600}
-.brand small{color:var(--on-navy-2);font-size:12.5px}
-.env{display:inline-flex;align-items:center;gap:7px;font-size:12px;color:var(--brass);border:1px solid rgba(194,161,94,.35);padding:3px 10px;border-radius:999px;width:max-content;margin-left:8px}
-.env::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
-.nav{display:flex;flex-direction:column;gap:2px}
-.nav button{display:flex;align-items:center;gap:11px;background:none;border:0;text-align:left;padding:9px 12px;border-radius:9px;cursor:pointer;color:var(--on-navy-2);font-weight:500;position:relative}
-.nav button:hover{background:var(--navy-2);color:var(--on-navy)}
-.nav button[aria-current="page"]{background:var(--navy-2);color:var(--on-navy)}
-.nav button[aria-current="page"]::before{content:"";position:absolute;left:-14px;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--brass)}
-.nav button[aria-current="page"] svg{color:var(--brass)}
-.me{margin-top:auto;display:flex;align-items:center;gap:11px;padding:12px 8px 0;border-top:1px solid var(--navy-2)}
-.avatar{width:34px;height:34px;border-radius:50%;background:var(--navy-2);color:var(--on-navy);display:grid;place-items:center;font-size:13px;font-weight:600;flex:none;border:1px solid rgba(194,161,94,.4)}
-.me div{min-width:0;flex:1}
-.me b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.me small{color:var(--on-navy-2);font-size:12px}
-.me button{background:none;border:0;color:var(--on-navy-2);cursor:pointer;padding:6px;border-radius:8px;display:grid}
-.me button:hover{color:var(--on-navy);background:var(--navy-2)}
+      /* shell */
+      .app {
+        display: grid;
+        grid-template-columns: 256px minmax(0, 1fr);
+        min-height: 100vh;
+      }
+      .side {
+        background: var(--navy);
+        color: var(--on-navy);
+        padding: 24px 14px 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 26px;
+        position: sticky;
+        top: env(safe-area-inset-top, 0px);
+        height: 100vh;
+        overflow: auto;
+        align-self: start;
+      }
+      .brand {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 0 8px;
+      }
+      .mark {
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: var(--brass);
+        color: var(--brass-ink);
+        display: grid;
+        place-items: center;
+        font-family: var(--serif);
+        font-size: 20px;
+        flex: none;
+      }
+      .brand b {
+        display: block;
+        font-size: 14px;
+        line-height: 1.25;
+        font-weight: 600;
+      }
+      .brand small {
+        color: var(--on-navy-2);
+        font-size: 12.5px;
+      }
+      .env {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        color: var(--brass);
+        border: 1px solid rgba(194, 161, 94, 0.35);
+        padding: 3px 10px;
+        border-radius: 999px;
+        width: max-content;
+        margin-left: 8px;
+      }
+      .env::before {
+        content: "";
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+      .nav {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .nav button {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        background: none;
+        border: 0;
+        text-align: left;
+        padding: 9px 12px;
+        border-radius: 9px;
+        cursor: pointer;
+        color: var(--on-navy-2);
+        font-weight: 500;
+        position: relative;
+      }
+      .nav button:hover {
+        background: var(--navy-2);
+        color: var(--on-navy);
+      }
+      .nav button[aria-current="page"] {
+        background: var(--navy-2);
+        color: var(--on-navy);
+      }
+      .nav button[aria-current="page"]::before {
+        content: "";
+        position: absolute;
+        left: -14px;
+        top: 8px;
+        bottom: 8px;
+        width: 3px;
+        border-radius: 0 3px 3px 0;
+        background: var(--brass);
+      }
+      .nav button[aria-current="page"] svg {
+        color: var(--brass);
+      }
+      .me {
+        margin-top: auto;
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 12px 8px 0;
+        border-top: 1px solid var(--navy-2);
+      }
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: var(--navy-2);
+        color: var(--on-navy);
+        display: grid;
+        place-items: center;
+        font-size: 13px;
+        font-weight: 600;
+        flex: none;
+        border: 1px solid rgba(194, 161, 94, 0.4);
+      }
+      .me div {
+        min-width: 0;
+        flex: 1;
+      }
+      .me b {
+        display: block;
+        font-size: 13.5px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .me small {
+        color: var(--on-navy-2);
+        font-size: 12px;
+      }
+      .me button {
+        background: none;
+        border: 0;
+        color: var(--on-navy-2);
+        cursor: pointer;
+        padding: 6px;
+        border-radius: 8px;
+        display: grid;
+      }
+      .me button:hover {
+        color: var(--on-navy);
+        background: var(--navy-2);
+      }
 
-main{padding:40px clamp(18px,4vw,56px) 72px;max-width:1160px;width:100%}
-h1{font-family:var(--serif);font-weight:400;font-size:40px;line-height:1.05;margin:0 0 8px;letter-spacing:-.01em}
-h2{font-size:16px;margin:0 0 12px;font-weight:600}
-.lead{color:var(--ink-2);margin:0 0 28px;max-width:64ch}
-.muted{color:var(--ink-3)}
-.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.spread{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+      main {
+        padding: 40px clamp(18px, 4vw, 56px) 72px;
+        max-width: 1160px;
+        width: 100%;
+      }
+      h1 {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 40px;
+        line-height: 1.05;
+        margin: 0 0 8px;
+        letter-spacing: -0.01em;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 0 0 12px;
+        font-weight: 600;
+      }
+      .lead {
+        color: var(--ink-2);
+        margin: 0 0 28px;
+        max-width: 64ch;
+      }
+      .muted {
+        color: var(--ink-3);
+      }
+      .row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: center;
+      }
+      .spread {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
 
-.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-2);background:var(--surface);padding:9px 15px;border-radius:10px;cursor:pointer;font-weight:500;font-size:14px;white-space:nowrap;transition:border-color .15s,background .15s}
-.btn:hover{border-color:var(--ink-3)}
-.btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:600}
-.btn.primary:hover{filter:brightness(1.15)}
-.btn.small{padding:5px 11px;font-size:13px;border-radius:8px}
-.btn.danger{color:var(--bad)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.link{background:none;border:0;padding:0;color:var(--ink);text-decoration:underline;text-decoration-color:var(--line-2);text-underline-offset:3px;cursor:pointer;font-weight:500;font-size:13.5px}
-.link:hover{text-decoration-color:currentColor}
-.link.bad{color:var(--bad)}
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid var(--line-2);
+        background: var(--surface);
+        padding: 9px 15px;
+        border-radius: 10px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 14px;
+        white-space: nowrap;
+        transition:
+          border-color 0.15s,
+          background 0.15s;
+      }
+      .btn:hover {
+        border-color: var(--ink-3);
+      }
+      .btn.primary {
+        background: var(--brand);
+        border-color: var(--brand);
+        color: var(--brand-ink);
+        font-weight: 600;
+      }
+      .btn.primary:hover {
+        filter: brightness(1.15);
+      }
+      .btn.small {
+        padding: 5px 11px;
+        font-size: 13px;
+        border-radius: 8px;
+      }
+      .btn.danger {
+        color: var(--bad);
+      }
+      .btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .link {
+        background: none;
+        border: 0;
+        padding: 0;
+        color: var(--ink);
+        text-decoration: underline;
+        text-decoration-color: var(--line-2);
+        text-underline-offset: 3px;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 13.5px;
+      }
+      .link:hover {
+        text-decoration-color: currentColor;
+      }
+      .link.bad {
+        color: var(--bad);
+      }
 
-.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 24px;box-shadow:var(--shadow)}
-.stack{display:grid;gap:20px}
-.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:20px}
+      .panel {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 22px 24px;
+        box-shadow: var(--shadow);
+      }
+      .stack {
+        display: grid;
+        gap: 20px;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+      }
 
-.summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));border:1px solid var(--line);border-radius:16px;background:var(--surface);overflow:hidden;margin-bottom:20px;box-shadow:var(--shadow)}
-.summary div{padding:20px 22px;border-right:1px solid var(--line)}
-.summary div:last-child{border-right:0}
-.summary span{display:block;font-size:13px;color:var(--ink-3);font-weight:500}
-.summary strong{display:block;font-family:var(--serif);font-weight:400;font-size:32px;line-height:1.1;margin-top:6px;letter-spacing:-.01em}
-.summary em{font-style:normal;font-size:12.5px;color:var(--bad);font-weight:500}
+      .summary {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        overflow: hidden;
+        margin-bottom: 20px;
+        box-shadow: var(--shadow);
+      }
+      .summary div {
+        padding: 20px 22px;
+        border-right: 1px solid var(--line);
+      }
+      .summary div:last-child {
+        border-right: 0;
+      }
+      .summary span {
+        display: block;
+        font-size: 13px;
+        color: var(--ink-3);
+        font-weight: 500;
+      }
+      .summary strong {
+        display: block;
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 32px;
+        line-height: 1.1;
+        margin-top: 6px;
+        letter-spacing: -0.01em;
+      }
+      .summary em {
+        font-style: normal;
+        font-size: 12.5px;
+        color: var(--bad);
+        font-weight: 500;
+      }
 
-.alert{display:flex;gap:14px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-radius:14px;padding:14px 18px;margin-bottom:20px;background:var(--warn-soft);color:var(--warn);font-size:14.5px}
-.alert.bad{background:var(--bad-soft);color:var(--bad)}
-.alert b{font-weight:600}
+      .alert {
+        display: flex;
+        gap: 14px;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        border-radius: 14px;
+        padding: 14px 18px;
+        margin-bottom: 20px;
+        background: var(--warn-soft);
+        color: var(--warn);
+        font-size: 14.5px;
+      }
+      .alert.bad {
+        background: var(--bad-soft);
+        color: var(--bad);
+      }
+      .alert b {
+        font-weight: 600;
+      }
 
-.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
-table{border-collapse:collapse;width:100%;font-size:14px}
-th{text-align:left;font-weight:500;color:var(--ink-3);font-size:12.5px;padding:12px 16px;border-bottom:1px solid var(--line);white-space:nowrap;background:var(--surface-2)}
-td{padding:12px 16px;border-bottom:1px solid var(--line);vertical-align:top}
-tbody tr:hover td{background:color-mix(in srgb,var(--surface-2) 55%,transparent)}
-tr:last-child td{border-bottom:0}
-td.num,th.num{text-align:right;white-space:nowrap}
-td .sub{display:block;color:var(--ink-3);font-size:12.5px}
-tfoot td{font-weight:600;background:var(--surface-2);border-top:1px solid var(--line)}
-.actions{display:flex;gap:14px;justify-content:flex-end;white-space:nowrap}
-.errlist{margin:4px 0 0;padding-left:16px;color:var(--bad);font-size:12.5px}
+      .tablewrap {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 14px;
+      }
+      th {
+        text-align: left;
+        font-weight: 500;
+        color: var(--ink-3);
+        font-size: 12.5px;
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+        background: var(--surface-2);
+      }
+      td {
+        padding: 12px 16px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      tbody tr:hover td {
+        background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+      }
+      tr:last-child td {
+        border-bottom: 0;
+      }
+      td.num,
+      th.num {
+        text-align: right;
+        white-space: nowrap;
+      }
+      td .sub {
+        display: block;
+        color: var(--ink-3);
+        font-size: 12.5px;
+      }
+      tfoot td {
+        font-weight: 600;
+        background: var(--surface-2);
+        border-top: 1px solid var(--line);
+      }
+      .actions {
+        display: flex;
+        gap: 14px;
+        justify-content: flex-end;
+        white-space: nowrap;
+      }
+      .errlist {
+        margin: 4px 0 0;
+        padding-left: 16px;
+        color: var(--bad);
+        font-size: 12.5px;
+      }
 
-.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:600;white-space:nowrap}
-.chip.ok{background:var(--ok-soft);color:var(--ok)}
-.chip.bad{background:var(--bad-soft);color:var(--bad)}
-.chip.warn{background:var(--warn-soft);color:var(--warn)}
-.chip.neutral{background:var(--surface-2);color:var(--ink-2)}
-.chip.brand{background:var(--brand-soft);color:var(--brand)}
-.chip.pulse::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;animation:p 1s ease-in-out infinite}
-@keyframes p{50%{opacity:.25}}
-@media (prefers-reduced-motion: reduce){.chip.pulse::before{animation:none}*{transition:none!important}}
+      .chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        font-size: 12.5px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .chip.ok {
+        background: var(--ok-soft);
+        color: var(--ok);
+      }
+      .chip.bad {
+        background: var(--bad-soft);
+        color: var(--bad);
+      }
+      .chip.warn {
+        background: var(--warn-soft);
+        color: var(--warn);
+      }
+      .chip.neutral {
+        background: var(--surface-2);
+        color: var(--ink-2);
+      }
+      .chip.brand {
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+      .chip.pulse::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: currentColor;
+        animation: p 1s ease-in-out infinite;
+      }
+      @keyframes p {
+        50% {
+          opacity: 0.25;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .chip.pulse::before {
+          animation: none;
+        }
+        * {
+          transition: none !important;
+        }
+      }
 
-.drop{display:block;border:1.5px dashed var(--line-2);border-radius:16px;padding:44px 20px;text-align:center;cursor:pointer;background:var(--surface);transition:background .15s,border-color .15s;position:relative}
-.drop:hover,.drop.over{border-color:var(--brass);background:color-mix(in srgb,var(--brass) 7%,var(--surface))}
-.drop svg{width:28px;height:28px;color:var(--brass);margin-bottom:10px}
-.drop strong{display:block;font-family:var(--serif);font-weight:400;font-size:26px;margin-bottom:4px}
-.drop input{position:absolute;width:1px;height:1px;opacity:0}
-details{margin-top:20px;color:var(--ink-2);font-size:14px}
-details summary{cursor:pointer;font-weight:500;color:var(--ink)}
-details code{background:var(--surface-2);padding:1px 6px;border-radius:5px;font-size:13px}
+      .drop {
+        display: block;
+        border: 1.5px dashed var(--line-2);
+        border-radius: 16px;
+        padding: 44px 20px;
+        text-align: center;
+        cursor: pointer;
+        background: var(--surface);
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+        position: relative;
+      }
+      .drop:hover,
+      .drop.over {
+        border-color: var(--brass);
+        background: color-mix(in srgb, var(--brass) 7%, var(--surface));
+      }
+      .drop svg {
+        width: 28px;
+        height: 28px;
+        color: var(--brass);
+        margin-bottom: 10px;
+      }
+      .drop strong {
+        display: block;
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 26px;
+        margin-bottom: 4px;
+      }
+      .drop input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+      }
+      details {
+        margin-top: 20px;
+        color: var(--ink-2);
+        font-size: 14px;
+      }
+      details summary {
+        cursor: pointer;
+        font-weight: 500;
+        color: var(--ink);
+      }
+      details code {
+        background: var(--surface-2);
+        padding: 1px 6px;
+        border-radius: 5px;
+        font-size: 13px;
+      }
 
-.progress{height:6px;border-radius:999px;background:var(--surface-2);overflow:hidden;margin:14px 0 22px}
-.progress i{display:block;height:100%;background:var(--brass);width:0;transition:width .3s}
-.banner{border-radius:14px;padding:18px 20px;margin-bottom:20px;background:var(--ok-soft);color:var(--ok)}
-.banner b{display:block;font-size:16px}
-.banner.bad{background:var(--bad-soft);color:var(--bad)}
+      .progress {
+        height: 6px;
+        border-radius: 999px;
+        background: var(--surface-2);
+        overflow: hidden;
+        margin: 14px 0 22px;
+      }
+      .progress i {
+        display: block;
+        height: 100%;
+        background: var(--brass);
+        width: 0;
+        transition: width 0.3s;
+      }
+      .banner {
+        border-radius: 14px;
+        padding: 18px 20px;
+        margin-bottom: 20px;
+        background: var(--ok-soft);
+        color: var(--ok);
+      }
+      .banner b {
+        display: block;
+        font-size: 16px;
+      }
+      .banner.bad {
+        background: var(--bad-soft);
+        color: var(--bad);
+      }
 
-.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px 16px;align-items:end}
-.field{display:grid;gap:5px}
-.field label{font-size:13px;color:var(--ink-2);font-weight:500}
-.field input,.field select{border:1px solid var(--line-2);background:var(--surface);border-radius:10px;padding:9px 12px;min-width:0;width:100%;transition:border-color .15s,box-shadow .15s}
-.field input:focus,.field select:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 22%,transparent)}
-.field input:disabled{background:var(--surface-2);color:var(--ink-3)}
-.check{display:flex;gap:8px;align-items:center;font-size:14px;padding-bottom:9px}
-.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
-.filters .field{min-width:150px}
+      .form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 14px 16px;
+        align-items: end;
+      }
+      .field {
+        display: grid;
+        gap: 5px;
+      }
+      .field label {
+        font-size: 13px;
+        color: var(--ink-2);
+        font-weight: 500;
+      }
+      .field input,
+      .field select {
+        border: 1px solid var(--line-2);
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 9px 12px;
+        min-width: 0;
+        width: 100%;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+      }
+      .field input:focus,
+      .field select:focus {
+        outline: none;
+        border-color: var(--brass);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 22%, transparent);
+      }
+      .field input:disabled {
+        background: var(--surface-2);
+        color: var(--ink-3);
+      }
+      .check {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 14px;
+        padding-bottom: 9px;
+      }
+      .filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        align-items: end;
+      }
+      .filters .field {
+        min-width: 150px;
+      }
 
-.list{list-style:none;margin:0;padding:0}
-.list li{display:flex;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
-.list li:last-child{border-bottom:0}
-.list small{display:block;color:var(--ink-3);font-size:12.5px}
-.empty{color:var(--ink-3);padding:6px 0}
+      .list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .list li {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .list li:last-child {
+        border-bottom: 0;
+      }
+      .list small {
+        display: block;
+        color: var(--ink-3);
+        font-size: 12.5px;
+      }
+      .empty {
+        color: var(--ink-3);
+        padding: 6px 0;
+      }
 
-.cert{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:start}
-.cert .seal{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--brand-soft);color:var(--brand)}
-.cert .seal.ok{background:var(--ok-soft);color:var(--ok)}
-.cert .seal svg{width:26px;height:26px}
-.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 18px;margin:12px 0 0}
-.kv span{display:block;font-size:12.5px;color:var(--ink-3)}
+      .cert {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 16px;
+        align-items: start;
+      }
+      .cert .seal {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: var(--brand-soft);
+        color: var(--brand);
+      }
+      .cert .seal.ok {
+        background: var(--ok-soft);
+        color: var(--ok);
+      }
+      .cert .seal svg {
+        width: 26px;
+        height: 26px;
+      }
+      .kv {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        gap: 10px 18px;
+        margin: 12px 0 0;
+      }
+      .kv span {
+        display: block;
+        font-size: 12.5px;
+        color: var(--ink-3);
+      }
 
-.modal{position:fixed;inset:0;background:rgba(8,13,21,.55);backdrop-filter:blur(3px);display:none;place-items:center;padding:16px;z-index:50}
-.modal.open{display:grid}
-.dialog{background:var(--surface);border-radius:18px;max-width:640px;width:100%;max-height:calc(100vh - 32px);overflow:auto;padding:26px;box-shadow:0 24px 60px -20px rgba(0,0,0,.45)}
-.dialog h2{font-family:var(--serif);font-weight:400;font-size:28px;margin-bottom:8px}
-.doc{border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14px}
-.doc header{background:var(--navy);color:var(--on-navy);padding:16px 18px}
-.doc header b{font-family:var(--serif);font-weight:400;font-size:24px;display:block}
-.doc header span{color:var(--on-navy-2);font-size:13px}
-.doc section{padding:12px 18px;border-top:1px solid var(--line)}
-.doc section h3{font-size:12.5px;color:var(--ink-3);font-weight:500;margin:0 0 4px}
-.doc .total{display:flex;justify-content:space-between;align-items:baseline;font-weight:600}
-.doc .total strong{font-family:var(--serif);font-weight:400;font-size:28px}
-.doc .key{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;word-break:break-all}
-.doc .stampnote{background:var(--warn-soft);color:var(--warn);font-size:12.5px}
-.cancelled{color:var(--bad);font-weight:600}
+      .modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(8, 13, 21, 0.55);
+        backdrop-filter: blur(3px);
+        display: none;
+        place-items: center;
+        padding: 16px;
+        z-index: 50;
+      }
+      .modal.open {
+        display: grid;
+      }
+      .dialog {
+        background: var(--surface);
+        border-radius: 18px;
+        max-width: 640px;
+        width: 100%;
+        max-height: calc(100vh - 32px);
+        overflow: auto;
+        padding: 26px;
+        box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.45);
+      }
+      .dialog h2 {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 28px;
+        margin-bottom: 8px;
+      }
+      .doc {
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        overflow: hidden;
+        font-size: 14px;
+      }
+      .doc header {
+        background: var(--navy);
+        color: var(--on-navy);
+        padding: 16px 18px;
+      }
+      .doc header b {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 24px;
+        display: block;
+      }
+      .doc header span {
+        color: var(--on-navy-2);
+        font-size: 13px;
+      }
+      .doc section {
+        padding: 12px 18px;
+        border-top: 1px solid var(--line);
+      }
+      .doc section h3 {
+        font-size: 12.5px;
+        color: var(--ink-3);
+        font-weight: 500;
+        margin: 0 0 4px;
+      }
+      .doc .total {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-weight: 600;
+      }
+      .doc .total strong {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 28px;
+      }
+      .doc .key {
+        font-family: ui-monospace, Menlo, Consolas, monospace;
+        font-size: 12.5px;
+        word-break: break-all;
+      }
+      .doc .stampnote {
+        background: var(--warn-soft);
+        color: var(--warn);
+        font-size: 12.5px;
+      }
+      .cancelled {
+        color: var(--bad);
+        font-weight: 600;
+      }
 
-.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(20px);background:var(--navy);color:var(--on-navy);padding:11px 18px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:.2s;z-index:60;max-width:calc(100% - 32px);box-shadow:0 10px 30px -10px rgba(0,0,0,.4)}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+      .toast {
+        position: fixed;
+        left: 50%;
+        bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+        transform: translateX(-50%) translateY(20px);
+        background: var(--navy);
+        color: var(--on-navy);
+        padding: 11px 18px;
+        border-radius: 12px;
+        font-size: 14px;
+        opacity: 0;
+        pointer-events: none;
+        transition: 0.2s;
+        z-index: 60;
+        max-width: calc(100% - 32px);
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.4);
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
 
-@media (max-width: 860px){
-  .login{grid-template-columns:1fr}
-  .login-art{padding:32px 24px 36px;min-height:auto}
-  .login-art h2{font-size:34px}
-  .login-art .foot{display:none}
-  .app{grid-template-columns:1fr}
-  .side{position:static;height:auto;padding:14px 16px 10px;gap:12px}
-  .sidetop{display:flex;justify-content:space-between;align-items:center;gap:12px}
-  .brand{padding:0}
-  .env{display:none}
-  .nav{flex-direction:row;overflow-x:auto;gap:4px;margin:0 -16px;padding:0 16px 4px;scrollbar-width:none}
-  .nav::-webkit-scrollbar{display:none}
-  .nav button{white-space:nowrap;padding:8px 12px}
-  .nav button[aria-current="page"]::before{left:12px;right:12px;top:auto;bottom:0;width:auto;height:2px;border-radius:2px}
-  .nav svg{display:none}
-  .me{display:none}
-  .mobileout{display:grid!important}
-  main{padding-top:26px}
-  h1{font-size:32px}
-  .summary div{border-right:0;border-bottom:1px solid var(--line)}
-  .summary div:last-child{border-bottom:0}
-}
-@media (min-width: 861px){.sidetop{display:flex;flex-direction:column;gap:14px}}
-.mobileout{display:none;background:none;border:1px solid var(--navy-2);color:var(--on-navy-2);border-radius:999px;place-items:center;width:36px;height:36px;cursor:pointer;padding:0}
-</style>
-</head>
-<body>
-<div class="login" id="login" hidden>
-  <div class="login-art">
-    <div class="brand"><div class="mark">N</div><div><b id="lgEmp"></b><small>Jaraguá do Sul/SC</small></div></div>
-    <div style="position:relative;z-index:1;margin:48px 0">
-      <h2>As notas do mês, emitidas de uma vez.</h2>
-      <p>Importe a planilha, confira e emita todas as NFS-e pelo Emissor Nacional. O financeiro se atualiza sozinho.</p>
-    </div>
-    <div class="foot">Ambiente de demonstração. As notas não são enviadas à Receita.</div>
-  </div>
-  <div class="login-form">
-    <form class="login-card" id="loginForm" novalidate>
-      <h1>Entrar</h1>
-      <p class="muted" style="margin:0 0 26px">Use o e-mail e a senha cadastrados pela empresa.</p>
-      <div class="field"><label for="lgEmail">E-mail</label><input id="lgEmail" type="email" autocomplete="username" required></div>
-      <div class="field"><label for="lgSenha">Senha</label><input id="lgSenha" type="password" autocomplete="current-password" required></div>
-      <p class="loginerr" id="lgErr" role="alert"></p>
-      <button class="btn primary" type="submit">Entrar</button>
-      <div class="demo">
-        <p>Contas de teste, ambas com a senha demo1234:</p>
-        <div class="row">
-          <button type="button" class="btn small" data-action="demoLogin" data-email="gustavo@empresa.com.br">Empresa</button>
-          <button type="button" class="btn small" data-action="demoLogin" data-email="contador@escritorio.com.br">Contador</button>
+      @media (max-width: 860px) {
+        .login {
+          grid-template-columns: 1fr;
+        }
+        .login-art {
+          padding: 32px 24px 36px;
+          min-height: auto;
+        }
+        .login-art h2 {
+          font-size: 34px;
+        }
+        .login-art .foot {
+          display: none;
+        }
+        .app {
+          grid-template-columns: 1fr;
+        }
+        .side {
+          position: static;
+          height: auto;
+          padding: 14px 16px 10px;
+          gap: 12px;
+        }
+        .sidetop {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+        }
+        .brand {
+          padding: 0;
+        }
+        .env {
+          display: none;
+        }
+        .nav {
+          flex-direction: row;
+          overflow-x: auto;
+          gap: 4px;
+          margin: 0 -16px;
+          padding: 0 16px 4px;
+          scrollbar-width: none;
+        }
+        .nav::-webkit-scrollbar {
+          display: none;
+        }
+        .nav button {
+          white-space: nowrap;
+          padding: 8px 12px;
+        }
+        .nav button[aria-current="page"]::before {
+          left: 12px;
+          right: 12px;
+          top: auto;
+          bottom: 0;
+          width: auto;
+          height: 2px;
+          border-radius: 2px;
+        }
+        .nav svg {
+          display: none;
+        }
+        .me {
+          display: none;
+        }
+        .mobileout {
+          display: grid !important;
+        }
+        main {
+          padding-top: 26px;
+        }
+        h1 {
+          font-size: 32px;
+        }
+        .summary div {
+          border-right: 0;
+          border-bottom: 1px solid var(--line);
+        }
+        .summary div:last-child {
+          border-bottom: 0;
+        }
+      }
+      @media (min-width: 861px) {
+        .sidetop {
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+      }
+      .mobileout {
+        display: none;
+        background: none;
+        border: 1px solid var(--navy-2);
+        color: var(--on-navy-2);
+        border-radius: 999px;
+        place-items: center;
+        width: 36px;
+        height: 36px;
+        cursor: pointer;
+        padding: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="login" id="login" hidden>
+      <div class="login-art">
+        <!-- <div style="position: relative; z-index: 1; margin: 48px 0">
+          <h2>As notas do mês, emitidas de uma vez.</h2>
+          <p>
+            Importe a planilha, confira e emita todas as NFS-e pelo Emissor
+            Nacional. O financeiro se atualiza sozinho.
+          </p>
         </div>
+        <div class="foot">
+          Ambiente de demonstração. As notas não são enviadas à Receita.
+        </div> -->
       </div>
-    </form>
-  </div>
-</div>
-<div class="app" id="app" hidden>
-  <aside class="side">
-    <div class="sidetop">
-      <div class="brand"><div class="mark">N</div><div><b id="empNome"></b><small>Jaraguá do Sul/SC</small></div></div>
-      <span class="env" title="As notas não são enviadas à Receita. Use para testar o fluxo.">Homologação simulada</span>
-      <button class="mobileout" data-action="logout" aria-label="Sair"><svg class="i" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg></button>
+      <div class="login-form">
+        <form class="login-card" id="loginForm" novalidate>
+          <h1>Entrar</h1>
+          <p class="muted" style="margin: 0 0 26px">
+            Use o e-mail e a senha cadastrados pela empresa.
+          </p>
+          <div class="field">
+            <label for="lgEmail">E-mail</label
+            ><input
+              id="lgEmail"
+              type="email"
+              autocomplete="username"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="lgSenha">Senha</label
+            ><input
+              id="lgSenha"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </div>
+          <p class="loginerr" id="lgErr" role="alert"></p>
+          <button class="btn primary" type="submit">Entrar</button>
+          <div class="demo">
+            <p>Contas de teste, ambas com a senha demo1234:</p>
+            <div class="row">
+              <button
+                type="button"
+                class="btn small"
+                data-action="demoLogin"
+                data-email="gustavo@empresa.com.br"
+              >
+                Empresa
+              </button>
+              <button
+                type="button"
+                class="btn small"
+                data-action="demoLogin"
+                data-email="contador@escritorio.com.br"
+              >
+                Contador
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
     </div>
-    <nav class="nav" id="nav" aria-label="Seções"></nav>
-    <div class="me"><div class="avatar" id="meAv"></div><div><b id="meNome"></b><small id="mePerfil"></small></div>
-      <button data-action="logout" aria-label="Sair" title="Sair"><svg class="i" viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10 17l-5-5 5-5M5 12h11"/></svg></button>
+    <div class="app" id="app" hidden>
+      <aside class="side">
+        <div class="sidetop">
+          <div class="brand">
+            <div class="mark">N</div>
+            <div><b id="empNome"></b><small>Jaraguá do Sul/SC</small></div>
+          </div>
+          <span
+            class="env"
+            title="As notas não são enviadas à Receita. Use para testar o fluxo."
+            >Homologação simulada</span
+          >
+          <button class="mobileout" data-action="logout" aria-label="Sair">
+            <svg class="i" viewBox="0 0 24 24">
+              <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+              <path d="M10 17l-5-5 5-5M5 12h11" />
+            </svg>
+          </button>
+        </div>
+        <nav class="nav" id="nav" aria-label="Seções"></nav>
+        <div class="me">
+          <div class="avatar" id="meAv"></div>
+          <div><b id="meNome"></b><small id="mePerfil"></small></div>
+          <button data-action="logout" aria-label="Sair" title="Sair">
+            <svg class="i" viewBox="0 0 24 24">
+              <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+              <path d="M10 17l-5-5 5-5M5 12h11" />
+            </svg>
+          </button>
+        </div>
+      </aside>
+      <main id="main"></main>
     </div>
-  </aside>
-  <main id="main"></main>
-</div>
-<div class="modal" id="modal" role="dialog" aria-modal="true"><div class="dialog" id="dialog"></div></div>
-<div class="toast" id="toast" role="status"></div>
+    <div class="modal" id="modal" role="dialog" aria-modal="true">
+      <div class="dialog" id="dialog"></div>
+    </div>
+    <div class="toast" id="toast" role="status"></div>
 
-<script>
-/* ---------- utilitários ---------- */
-const brlF = new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'});
-const brl = v => brlF.format(v||0);
-const pad = (n,l=2) => String(n).padStart(l,'0');
-function toISO(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
-const todayISO = () => toISO(new Date());
-function addDays(iso,n){const [y,m,d]=iso.split('-').map(Number);return toISO(new Date(y,m-1,d+n))}
-function addMonths(iso,n){const [y,m,d]=iso.split('-').map(Number);const dt=new Date(y,m-1+n,1);const last=new Date(dt.getFullYear(),dt.getMonth()+1,0).getDate();dt.setDate(Math.min(d,last));return toISO(dt)}
-const fmtDate = iso => iso ? iso.slice(0,10).split('-').reverse().join('/') : '—';
-const fmtDateTime = iso => { const d=new Date(iso); return d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) };
-const monthLabel = ym => { const [y,m]=ym.split('-').map(Number); const s=new Date(y,m-1,1).toLocaleDateString('pt-BR',{month:'long',year:'numeric'}); return s.charAt(0).toUpperCase()+s.slice(1) };
-const uid = () => Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
-const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const digits = s => String(s??'').replace(/\D/g,'');
-const sleep = ms => new Promise(r=>setTimeout(r,ms));
+    <script>
+      /* ---------- utilitários ---------- */
+      const brlF = new Intl.NumberFormat("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
+      const brl = (v) => brlF.format(v || 0);
+      const pad = (n, l = 2) => String(n).padStart(l, "0");
+      function toISO(d) {
+        return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+      }
+      const todayISO = () => toISO(new Date());
+      function addDays(iso, n) {
+        const [y, m, d] = iso.split("-").map(Number);
+        return toISO(new Date(y, m - 1, d + n));
+      }
+      function addMonths(iso, n) {
+        const [y, m, d] = iso.split("-").map(Number);
+        const dt = new Date(y, m - 1 + n, 1);
+        const last = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate();
+        dt.setDate(Math.min(d, last));
+        return toISO(dt);
+      }
+      const fmtDate = (iso) =>
+        iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
+      const fmtDateTime = (iso) => {
+        const d = new Date(iso);
+        return (
+          d.toLocaleDateString("pt-BR") +
+          " " +
+          d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+        );
+      };
+      const monthLabel = (ym) => {
+        const [y, m] = ym.split("-").map(Number);
+        const s = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {
+          month: "long",
+          year: "numeric",
+        });
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      };
+      const uid = () =>
+        Math.random().toString(36).slice(2, 10) +
+        Date.now().toString(36).slice(-4);
+      const esc = (s) =>
+        String(s ?? "").replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+      const digits = (s) => String(s ?? "").replace(/\D/g, "");
+      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function cnpjDV(b){const calc=(s,n)=>{let t=0,p=n-7;for(let i=0;i<n;i++){t+=+s[i]*p--;if(p<2)p=9}const r=t%11;return r<2?0:11-r};const d1=calc(b,12);const d2=calc(b+d1,13);return b+d1+d2}
-function cpfDV(b){const calc=(s,n)=>{let t=0;for(let i=0;i<n;i++)t+=+s[i]*(n+1-i);let r=(t*10)%11;return r===10?0:r};const d1=calc(b,9);return b+d1+calc(b+d1,10)}
-function validCNPJ(c){c=digits(c);if(c.length!==14||/^(\d)\1+$/.test(c))return false;return cnpjDV(c.slice(0,12))===c}
-function validCPF(c){c=digits(c);if(c.length!==11||/^(\d)\1+$/.test(c))return false;return cpfDV(c.slice(0,9))===c}
-function fmtDoc(d){d=digits(d);if(d.length===14)return d.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,'$1.$2.$3/$4-$5');if(d.length===11)return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/,'$1.$2.$3-$4');return d}
-const fmtServ = c => c && c.length===6 ? `${c.slice(0,2)}.${c.slice(2,4)}.${c.slice(4)}` : (c||'—');
+      function cnpjDV(b) {
+        const calc = (s, n) => {
+          let t = 0,
+            p = n - 7;
+          for (let i = 0; i < n; i++) {
+            t += +s[i] * p--;
+            if (p < 2) p = 9;
+          }
+          const r = t % 11;
+          return r < 2 ? 0 : 11 - r;
+        };
+        const d1 = calc(b, 12);
+        const d2 = calc(b + d1, 13);
+        return b + d1 + d2;
+      }
+      function cpfDV(b) {
+        const calc = (s, n) => {
+          let t = 0;
+          for (let i = 0; i < n; i++) t += +s[i] * (n + 1 - i);
+          let r = (t * 10) % 11;
+          return r === 10 ? 0 : r;
+        };
+        const d1 = calc(b, 9);
+        return b + d1 + calc(b + d1, 10);
+      }
+      function validCNPJ(c) {
+        c = digits(c);
+        if (c.length !== 14 || /^(\d)\1+$/.test(c)) return false;
+        return cnpjDV(c.slice(0, 12)) === c;
+      }
+      function validCPF(c) {
+        c = digits(c);
+        if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+        return cpfDV(c.slice(0, 9)) === c;
+      }
+      function fmtDoc(d) {
+        d = digits(d);
+        if (d.length === 14)
+          return d.replace(
+            /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
+            "$1.$2.$3/$4-$5",
+          );
+        if (d.length === 11)
+          return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+        return d;
+      }
+      const fmtServ = (c) =>
+        c && c.length === 6
+          ? `${c.slice(0, 2)}.${c.slice(2, 4)}.${c.slice(4)}`
+          : c || "—";
 
-/* ---------- estado ---------- */
-const KEY='nfse-jgs-v1', SKEY='nfse-jgs-sessao';
-function defaultState(){return{
-  empresa:{razao:'Empresa do Gustavo Ltda',cnpj:cnpjDV('112223330001'),im:'',ibge:'4208906',serie:'900',proxDPS:1,proxNFSe:1,vencDias:10,cServPadrao:'',cert:null},
-  users:[],notas:[],receber:[],pagar:[],lotes:[]
-}}
-let S;
-try{const raw=localStorage.getItem(KEY);S=raw?JSON.parse(raw):null}catch(e){S=null}
-S=Object.assign(defaultState(),S||{});
-S.empresa=Object.assign(defaultState().empresa,S.empresa||{});
-delete S.role;
-function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+      /* ---------- estado ---------- */
+      const KEY = "nfse-jgs-v1",
+        SKEY = "nfse-jgs-sessao";
+      function defaultState() {
+        return {
+          empresa: {
+            razao: "",
+            cnpj: cnpjDV("112223330001"),
+            im: "",
+            ibge: "4208906",
+            serie: "900",
+            proxDPS: 1,
+            proxNFSe: 1,
+            vencDias: 10,
+            cServPadrao: "",
+            cert: null,
+          },
+          users: [],
+          notas: [],
+          receber: [],
+          pagar: [],
+          lotes: [],
+        };
+      }
+      let S;
+      try {
+        const raw = localStorage.getItem(KEY);
+        S = raw ? JSON.parse(raw) : null;
+      } catch (e) {
+        S = null;
+      }
+      S = Object.assign(defaultState(), S || {});
+      S.empresa = Object.assign(defaultState().empresa, S.empresa || {});
+      delete S.role;
+      function save() {
+        try {
+          localStorage.setItem(KEY, JSON.stringify(S));
+        } catch (e) {}
+      }
 
-let view='painel';
-let batch=null;
-let me=null;
-const F={notasMes:todayISO().slice(0,7),notasStatus:'todas',receber:'abertos',pagar:'abertos',expMes:todayISO().slice(0,7)};
+      let view = "painel";
+      let batch = null;
+      let me = null;
+      const F = {
+        notasMes: todayISO().slice(0, 7),
+        notasStatus: "todas",
+        receber: "abertos",
+        pagar: "abertos",
+        expMes: todayISO().slice(0, 7),
+      };
 
-/* ---------- login ---------- */
-async function hashPw(pw,salt){
-  const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+':'+pw));
-  return [...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-async function novoUsuario(nome,email,perfil,senha){const salt=uid()+uid();return{id:uid(),nome,email:email.toLowerCase(),perfil,salt,hash:await hashPw(senha,salt),criadoEm:new Date().toISOString()}}
-async function seedUsers(){
-  if(S.users.length)return;
-  S.users=[await novoUsuario('Gustavo','gustavo@empresa.com.br','empresa','demo1234'),await novoUsuario('Contador','contador@escritorio.com.br','contador','demo1234')];
-  save();
-}
-function loadSession(){try{const id=localStorage.getItem(SKEY);me=S.users.find(u=>u.id===id)||null}catch(e){me=null}}
-async function entrar(email,senha){
-  const u=S.users.find(x=>x.email===email.trim().toLowerCase());
-  if(!u||await hashPw(senha,u.salt)!==u.hash)return false;
-  me=u;try{localStorage.setItem(SKEY,u.id)}catch(e){}
-  view='painel';batch=null;return true;
-}
-function sair(){me=null;batch=null;try{localStorage.removeItem(SKEY)}catch(e){}closeModal();render()}
-document.getElementById('loginForm').addEventListener('submit',async e=>{
-  e.preventDefault();
-  const err=document.getElementById('lgErr');err.textContent='';
-  const ok=await entrar(document.getElementById('lgEmail').value,document.getElementById('lgSenha').value);
-  if(!ok){err.textContent='E-mail ou senha incorretos.';return}
-  document.getElementById('lgSenha').value='';render();
-});
+      /* ---------- login ---------- */
+      async function hashPw(pw, salt) {
+        const d = await crypto.subtle.digest(
+          "SHA-256",
+          new TextEncoder().encode(salt + ":" + pw),
+        );
+        return [...new Uint8Array(d)]
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      }
+      async function novoUsuario(nome, email, perfil, senha) {
+        const salt = uid() + uid();
+        return {
+          id: uid(),
+          nome,
+          email: email.toLowerCase(),
+          perfil,
+          salt,
+          hash: await hashPw(senha, salt),
+          criadoEm: new Date().toISOString(),
+        };
+      }
+      async function seedUsers() {
+        if (S.users.length) return;
+        S.users = [
+          await novoUsuario(
+            "Gustavo",
+            "gustavo@empresa.com.br",
+            "empresa",
+            "demo1234",
+          ),
+          await novoUsuario(
+            "Contador",
+            "contador@escritorio.com.br",
+            "contador",
+            "demo1234",
+          ),
+        ];
+        save();
+      }
+      function loadSession() {
+        try {
+          const id = localStorage.getItem(SKEY);
+          me = S.users.find((u) => u.id === id) || null;
+        } catch (e) {
+          me = null;
+        }
+      }
+      async function entrar(email, senha) {
+        const u = S.users.find((x) => x.email === email.trim().toLowerCase());
+        if (!u || (await hashPw(senha, u.salt)) !== u.hash) return false;
+        me = u;
+        try {
+          localStorage.setItem(SKEY, u.id);
+        } catch (e) {}
+        view = "painel";
+        batch = null;
+        return true;
+      }
+      function sair() {
+        me = null;
+        batch = null;
+        try {
+          localStorage.removeItem(SKEY);
+        } catch (e) {}
+        closeModal();
+        render();
+      }
+      document
+        .getElementById("loginForm")
+        .addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const err = document.getElementById("lgErr");
+          err.textContent = "";
+          const ok = await entrar(
+            document.getElementById("lgEmail").value,
+            document.getElementById("lgSenha").value,
+          );
+          if (!ok) {
+            err.textContent = "E-mail ou senha incorretos.";
+            return;
+          }
+          document.getElementById("lgSenha").value = "";
+          render();
+        });
 
-/* ---------- navegação ---------- */
-const IC={
-  painel:'<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
-  lote:'<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>',
-  notas:'<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>',
-  receber:'<circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9v6h6"/>',
-  pagar:'<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9 9h6v6"/>',
-  exportar:'<path d="M3 7h18v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 7l2-4h14l2 4"/><path d="M12 11v6m-3-3 3 3 3-3"/>',
-  usuarios:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',
-  config:'<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M16 9h3a1 1 0 0 1 1 1v11"/><path d="M8 7h4M8 11h4M8 15h4M2 21h20"/>',
-  cert:'<path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z"/><path d="m9 12 2 2 4-4"/>',
-  upload:'<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>'
-};
-const icon = k => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
-const NAV=[
-  ['painel','Painel',['empresa','contador']],
-  ['lote','Emitir em lote',['empresa']],
-  ['notas','Notas emitidas',['empresa','contador']],
-  ['receber','A receber',['empresa','contador']],
-  ['pagar','A pagar',['empresa','contador']],
-  ['exportar','Arquivos do mês',['empresa','contador']],
-  ['usuarios','Usuários',['empresa']],
-  ['config','Empresa e certificado',['empresa']]
-];
-const isEmp = () => me&&me.perfil==='empresa';
-const iniciais = n => String(n||'?').trim().split(/\s+/).slice(0,2).map(p=>p[0]).join('').toUpperCase();
+      /* ---------- navegação ---------- */
+      const IC = {
+        painel:
+          '<rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/>',
+        lote: '<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>',
+        notas:
+          '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h6"/>',
+        receber:
+          '<circle cx="12" cy="12" r="9"/><path d="M15 9l-6 6M9 9v6h6"/>',
+        pagar: '<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6M9 9h6v6"/>',
+        exportar:
+          '<path d="M3 7h18v13a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/><path d="M3 7l2-4h14l2 4"/><path d="M12 11v6m-3-3 3 3 3-3"/>',
+        usuarios:
+          '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',
+        config:
+          '<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16"/><path d="M16 9h3a1 1 0 0 1 1 1v11"/><path d="M8 7h4M8 11h4M8 15h4M2 21h20"/>',
+        cert: '<path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z"/><path d="m9 12 2 2 4-4"/>',
+        upload:
+          '<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>',
+      };
+      const icon = (k) =>
+        `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
+      const NAV = [
+        ["painel", "Painel", ["empresa", "contador"]],
+        ["lote", "Emitir em lote", ["empresa"]],
+        ["notas", "Notas emitidas", ["empresa", "contador"]],
+        ["receber", "A receber", ["empresa", "contador"]],
+        ["pagar", "A pagar", ["empresa", "contador"]],
+        ["exportar", "Arquivos do mês", ["empresa", "contador"]],
+        ["usuarios", "Usuários", ["empresa"]],
+        ["config", "Empresa e certificado", ["empresa"]],
+      ];
+      const isEmp = () => me && me.perfil === "empresa";
+      const iniciais = (n) =>
+        String(n || "?")
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((p) => p[0])
+          .join("")
+          .toUpperCase();
 
-function renderShell(){
-  document.getElementById('empNome').textContent=S.empresa.razao||'Sua empresa';
-  document.getElementById('nav').innerHTML=NAV.filter(n=>n[2].includes(me.perfil)).map(([k,l])=>`<button data-action="nav" data-view="${k}" ${k===view?'aria-current="page"':''}>${icon(k)}<span>${l}</span></button>`).join('');
-  document.getElementById('meAv').textContent=iniciais(me.nome);
-  document.getElementById('meNome').textContent=me.nome;
-  document.getElementById('mePerfil').textContent=me.perfil==='empresa'?'Empresa':'Contador, somente leitura';
-}
-function render(){
-  const logged=!!me;
-  document.getElementById('login').hidden=logged;
-  document.getElementById('app').hidden=!logged;
-  if(!logged){document.getElementById('lgEmp').textContent=S.empresa.razao||'Sua empresa';return}
-  const nv=NAV.find(n=>n[0]===view);if(!nv||!nv[2].includes(me.perfil))view='painel';
-  renderShell();document.getElementById('main').innerHTML=(V[view]||V.painel)();if(view==='lote')bindDrop();
-}
-function go(v){view=v;render();window.scrollTo(0,0)}
+      function renderShell() {
+        document.getElementById("empNome").textContent =
+          S.empresa.razao || "Sua empresa";
+        document.getElementById("nav").innerHTML = NAV.filter((n) =>
+          n[2].includes(me.perfil),
+        )
+          .map(
+            ([k, l]) =>
+              `<button data-action="nav" data-view="${k}" ${k === view ? 'aria-current="page"' : ""}>${icon(k)}<span>${l}</span></button>`,
+          )
+          .join("");
+        document.getElementById("meAv").textContent = iniciais(me.nome);
+        document.getElementById("meNome").textContent = me.nome;
+        document.getElementById("mePerfil").textContent =
+          me.perfil === "empresa" ? "Empresa" : "Contador, somente leitura";
+      }
+      function render() {
+        const logged = !!me;
+        document.getElementById("login").hidden = logged;
+        document.getElementById("app").hidden = !logged;
+        if (!logged) {
+          document.getElementById("lgEmp").textContent =
+            S.empresa.razao || "Sua empresa";
+          return;
+        }
+        const nv = NAV.find((n) => n[0] === view);
+        if (!nv || !nv[2].includes(me.perfil)) view = "painel";
+        renderShell();
+        document.getElementById("main").innerHTML = (V[view] || V.painel)();
+        if (view === "lote") bindDrop();
+      }
+      function go(v) {
+        view = v;
+        render();
+        window.scrollTo(0, 0);
+      }
 
-/* ---------- certificado ---------- */
-function diasAte(iso){const a=new Date(todayISO()+'T00:00:00'),b=new Date(iso.slice(0,10)+'T00:00:00');return Math.round((b-a)/864e5)}
-function certStatus(){
-  const c=S.empresa.cert;if(!c)return{k:'falta'};
-  const d=diasAte(c.validoAte);
-  if(d<0)return{k:'vencido',d};if(d<=30)return{k:'vencendo',d};return{k:'ok',d};
-}
-function certAlerta(){
-  if(!isEmp())return'';
-  const s=certStatus();
-  if(s.k==='falta')return`<div class="alert"><span><b>Certificado A1 não verificado.</b> Ele é necessário para emitir notas no Emissor Nacional.</span><button class="btn small" data-action="nav" data-view="config">Verificar certificado</button></div>`;
-  if(s.k==='vencido')return`<div class="alert bad"><span><b>Certificado A1 vencido.</b> Renove o e-CNPJ para voltar a emitir notas.</span><button class="btn small" data-action="nav" data-view="config">Atualizar certificado</button></div>`;
-  if(s.k==='vencendo')return`<div class="alert"><span><b>Certificado A1 vence em ${s.d} dia${s.d!==1?'s':''}</b>, em ${fmtDate(S.empresa.cert.validoAte)}. Renove antes para não interromper a emissão.</span><button class="btn small" data-action="nav" data-view="config">Ver certificado</button></div>`;
-  return'';
-}
-function binStr(buf){const u=new Uint8Array(buf);let s='';for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return s}
-async function verificarCert(){
-  const fi=document.getElementById('certFile'),pw=document.getElementById('certSenha'),out=document.getElementById('certErr');
-  out.textContent='';
-  const file=fi.files[0];
-  if(!file){out.textContent='Escolha o arquivo .pfx ou .p12 do certificado.';return}
-  if(!pw.value){out.textContent='Informe a senha do certificado.';pw.focus();return}
-  if(typeof forge==='undefined'){out.textContent='O leitor de certificados não carregou. Recarregue a página.';return}
-  try{
-    const p12=forge.pkcs12.pkcs12FromAsn1(forge.asn1.fromDer(binStr(await file.arrayBuffer())),false,pw.value);
-    const bags=(p12.getBags({bagType:forge.pki.oids.certBag})[forge.pki.oids.certBag]||[]).map(b=>b.cert).filter(Boolean);
-    const cn=c=>{const a=c.subject.getField('CN');return a?a.value:''};
-    const cert=bags.find(c=>/:\d{14}$/.test(cn(c)))||bags.find(c=>{const bc=c.getExtension('basicConstraints');return!bc||!bc.cA})||bags[0];
-    if(!cert)throw new Error('sem certificado');
-    const nome=cn(cert);const m=nome.match(/^(.*):(\d{14})$/);
-    const cnpj=m?m[2]:'';
-    if(cnpj&&cnpj!==digits(S.empresa.cnpj)){out.textContent=`Este certificado é do CNPJ ${fmtDoc(cnpj)}, diferente do cadastrado (${fmtDoc(S.empresa.cnpj)}).`;return}
-    const iss=cert.issuer.getField('CN');
-    S.empresa.cert={titular:m?m[1]:nome,cnpj:cnpj||digits(S.empresa.cnpj),emissor:iss?iss.value:'',validoDe:toISO(cert.validity.notBefore),validoAte:toISO(cert.validity.notAfter),verificadoEm:new Date().toISOString(),arquivo:file.name};
-    save();render();toast('Certificado verificado');
-  }catch(e){
-    const msg=String(e&&e.message||'');
-    out.textContent=/password|MAC/i.test(msg)?'Senha incorreta para este certificado.':'Não consegui ler este arquivo. Confira se é o .pfx ou .p12 do e-CNPJ A1.';
-  }finally{pw.value=''}
-}
+      /* ---------- certificado ---------- */
+      function diasAte(iso) {
+        const a = new Date(todayISO() + "T00:00:00"),
+          b = new Date(iso.slice(0, 10) + "T00:00:00");
+        return Math.round((b - a) / 864e5);
+      }
+      function certStatus() {
+        const c = S.empresa.cert;
+        if (!c) return { k: "falta" };
+        const d = diasAte(c.validoAte);
+        if (d < 0) return { k: "vencido", d };
+        if (d <= 30) return { k: "vencendo", d };
+        return { k: "ok", d };
+      }
+      function certAlerta() {
+        if (!isEmp()) return "";
+        const s = certStatus();
+        if (s.k === "falta")
+          return `<div class="alert"><span><b>Certificado A1 não verificado.</b> Ele é necessário para emitir notas no Emissor Nacional.</span><button class="btn small" data-action="nav" data-view="config">Verificar certificado</button></div>`;
+        if (s.k === "vencido")
+          return `<div class="alert bad"><span><b>Certificado A1 vencido.</b> Renove o e-CNPJ para voltar a emitir notas.</span><button class="btn small" data-action="nav" data-view="config">Atualizar certificado</button></div>`;
+        if (s.k === "vencendo")
+          return `<div class="alert"><span><b>Certificado A1 vence em ${s.d} dia${s.d !== 1 ? "s" : ""}</b>, em ${fmtDate(S.empresa.cert.validoAte)}. Renove antes para não interromper a emissão.</span><button class="btn small" data-action="nav" data-view="config">Ver certificado</button></div>`;
+        return "";
+      }
+      function binStr(buf) {
+        const u = new Uint8Array(buf);
+        let s = "";
+        for (let i = 0; i < u.length; i += 8192)
+          s += String.fromCharCode.apply(null, u.subarray(i, i + 8192));
+        return s;
+      }
+      async function verificarCert() {
+        const fi = document.getElementById("certFile"),
+          pw = document.getElementById("certSenha"),
+          out = document.getElementById("certErr");
+        out.textContent = "";
+        const file = fi.files[0];
+        if (!file) {
+          out.textContent = "Escolha o arquivo .pfx ou .p12 do certificado.";
+          return;
+        }
+        if (!pw.value) {
+          out.textContent = "Informe a senha do certificado.";
+          pw.focus();
+          return;
+        }
+        if (typeof forge === "undefined") {
+          out.textContent =
+            "O leitor de certificados não carregou. Recarregue a página.";
+          return;
+        }
+        try {
+          const p12 = forge.pkcs12.pkcs12FromAsn1(
+            forge.asn1.fromDer(binStr(await file.arrayBuffer())),
+            false,
+            pw.value,
+          );
+          const bags = (
+            p12.getBags({ bagType: forge.pki.oids.certBag })[
+              forge.pki.oids.certBag
+            ] || []
+          )
+            .map((b) => b.cert)
+            .filter(Boolean);
+          const cn = (c) => {
+            const a = c.subject.getField("CN");
+            return a ? a.value : "";
+          };
+          const cert =
+            bags.find((c) => /:\d{14}$/.test(cn(c))) ||
+            bags.find((c) => {
+              const bc = c.getExtension("basicConstraints");
+              return !bc || !bc.cA;
+            }) ||
+            bags[0];
+          if (!cert) throw new Error("sem certificado");
+          const nome = cn(cert);
+          const m = nome.match(/^(.*):(\d{14})$/);
+          const cnpj = m ? m[2] : "";
+          if (cnpj && cnpj !== digits(S.empresa.cnpj)) {
+            out.textContent = `Este certificado é do CNPJ ${fmtDoc(cnpj)}, diferente do cadastrado (${fmtDoc(S.empresa.cnpj)}).`;
+            return;
+          }
+          const iss = cert.issuer.getField("CN");
+          S.empresa.cert = {
+            titular: m ? m[1] : nome,
+            cnpj: cnpj || digits(S.empresa.cnpj),
+            emissor: iss ? iss.value : "",
+            validoDe: toISO(cert.validity.notBefore),
+            validoAte: toISO(cert.validity.notAfter),
+            verificadoEm: new Date().toISOString(),
+            arquivo: file.name,
+          };
+          save();
+          render();
+          toast("Certificado verificado");
+        } catch (e) {
+          const msg = String((e && e.message) || "");
+          out.textContent = /password|MAC/i.test(msg)
+            ? "Senha incorreta para este certificado."
+            : "Não consegui ler este arquivo. Confira se é o .pfx ou .p12 do e-CNPJ A1.";
+        } finally {
+          pw.value = "";
+        }
+      }
 
-/* ---------- toasts e modal ---------- */
-let tT;
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(tT);tT=setTimeout(()=>t.classList.remove('show'),3200)}
-function openModal(html){document.getElementById('dialog').innerHTML=html;document.getElementById('modal').classList.add('open');const f=document.querySelector('#dialog input,#dialog button');f&&f.focus()}
-function closeModal(){document.getElementById('modal').classList.remove('open')}
-document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+      /* ---------- toasts e modal ---------- */
+      let tT;
+      function toast(msg) {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.classList.add("show");
+        clearTimeout(tT);
+        tT = setTimeout(() => t.classList.remove("show"), 3200);
+      }
+      function openModal(html) {
+        document.getElementById("dialog").innerHTML = html;
+        document.getElementById("modal").classList.add("open");
+        const f = document.querySelector("#dialog input,#dialog button");
+        f && f.focus();
+      }
+      function closeModal() {
+        document.getElementById("modal").classList.remove("open");
+      }
+      document.getElementById("modal").addEventListener("click", (e) => {
+        if (e.target.id === "modal") closeModal();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+      });
 
-/* ---------- downloads ---------- */
-let dlP=null;
-function getDL(){if(!dlP)dlP=(window.claude&&window.claude.use)?window.claude.use('downloads'):Promise.resolve(null);return dlP}
-async function baixar(filename,data){
-  if(!window.claude){
-    const blob=data instanceof Blob?data:new Blob([data]);
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;
-    document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);return;
-  }
-  const dl=await getDL();
-  if(!dl){toast('Downloads não estão disponíveis nesta visualização.');return}
-  try{await dl.save({filename,data})}
-  catch(err){const c=err&&err.code;if(c==='declined')return;if(c==='rate_limited'){toast('Confirme o download anterior e tente de novo.');return}toast('Não foi possível baixar o arquivo.')}
-}
+      /* ---------- downloads ---------- */
+      let dlP = null;
+      function getDL() {
+        if (!dlP)
+          dlP =
+            window.claude && window.claude.use
+              ? window.claude.use("downloads")
+              : Promise.resolve(null);
+        return dlP;
+      }
+      async function baixar(filename, data) {
+        if (!window.claude) {
+          const blob = data instanceof Blob ? data : new Blob([data]);
+          const a = document.createElement("a");
+          a.href = URL.createObjectURL(blob);
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+          return;
+        }
+        const dl = await getDL();
+        if (!dl) {
+          toast("Downloads não estão disponíveis nesta visualização.");
+          return;
+        }
+        try {
+          await dl.save({ filename, data });
+        } catch (err) {
+          const c = err && err.code;
+          if (c === "declined") return;
+          if (c === "rate_limited") {
+            toast("Confirme o download anterior e tente de novo.");
+            return;
+          }
+          toast("Não foi possível baixar o arquivo.");
+        }
+      }
 
-/* ---------- regras de status ---------- */
-function stReceber(t){if(t.recebidoEm)return'recebido';return t.venc<todayISO()?'vencido':'aberto'}
-function stPagar(t){if(t.pagoEm)return'pago';return t.venc<todayISO()?'vencido':'aberto'}
-const chipFin = s => ({aberto:'<span class="chip neutral">Em aberto</span>',vencido:'<span class="chip bad">Vencido</span>',recebido:'<span class="chip ok">Recebido</span>',pago:'<span class="chip ok">Pago</span>'}[s]);
+      /* ---------- regras de status ---------- */
+      function stReceber(t) {
+        if (t.recebidoEm) return "recebido";
+        return t.venc < todayISO() ? "vencido" : "aberto";
+      }
+      function stPagar(t) {
+        if (t.pagoEm) return "pago";
+        return t.venc < todayISO() ? "vencido" : "aberto";
+      }
+      const chipFin = (s) =>
+        ({
+          aberto: '<span class="chip neutral">Em aberto</span>',
+          vencido: '<span class="chip bad">Vencido</span>',
+          recebido: '<span class="chip ok">Recebido</span>',
+          pago: '<span class="chip ok">Pago</span>',
+        })[s];
 
-/* ---------- views ---------- */
-const V={};
+      /* ---------- views ---------- */
+      const V = {};
 
-V.painel=()=>{
-  const ym=todayISO().slice(0,7), hoje=todayISO(), em7=addDays(hoje,7);
-  const notasMes=S.notas.filter(n=>n.competencia.slice(0,7)===ym&&n.status==='autorizada');
-  const fat=notasMes.reduce((a,n)=>a+n.valor,0);
-  const abertos=S.receber.filter(t=>!t.recebidoEm);
-  const vencidos=abertos.filter(t=>t.venc<hoje);
-  const pagarSemana=S.pagar.filter(t=>!t.pagoEm&&t.venc<=em7).sort((a,b)=>a.venc.localeCompare(b.venc));
-  const ult=S.lotes[0];
-  return `
-  <h1>Olá, ${esc(me.nome.split(' ')[0])}</h1>
-  <p class="lead">${monthLabel(ym)}${ult?`. Último lote emitido em ${fmtDateTime(ult.data)} com ${ult.qtd} notas.`:'.'}</p>
+      V.painel = () => {
+        const ym = todayISO().slice(0, 7),
+          hoje = todayISO(),
+          em7 = addDays(hoje, 7);
+        const notasMes = S.notas.filter(
+          (n) => n.competencia.slice(0, 7) === ym && n.status === "autorizada",
+        );
+        const fat = notasMes.reduce((a, n) => a + n.valor, 0);
+        const abertos = S.receber.filter((t) => !t.recebidoEm);
+        const vencidos = abertos.filter((t) => t.venc < hoje);
+        const pagarSemana = S.pagar
+          .filter((t) => !t.pagoEm && t.venc <= em7)
+          .sort((a, b) => a.venc.localeCompare(b.venc));
+        const ult = S.lotes[0];
+        return `
+  <h1>Olá, ${esc(me.nome.split(" ")[0])}</h1>
+  <p class="lead">${monthLabel(ym)}${ult ? `. Último lote emitido em ${fmtDateTime(ult.data)} com ${ult.qtd} notas.` : "."}</p>
   ${certAlerta()}
   <div class="summary">
     <div><span>Faturado no mês</span><strong>${brl(fat)}</strong></div>
     <div><span>Notas no mês</span><strong>${notasMes.length}</strong></div>
-    <div><span>A receber em aberto</span><strong>${brl(abertos.reduce((a,t)=>a+t.valor,0))}</strong>${vencidos.length?`<em>${vencidos.length} vencido${vencidos.length>1?'s':''}</em>`:''}</div>
-    <div><span>A pagar em 7 dias</span><strong>${brl(pagarSemana.reduce((a,t)=>a+t.valor,0))}</strong></div>
+    <div><span>A receber em aberto</span><strong>${brl(abertos.reduce((a, t) => a + t.valor, 0))}</strong>${vencidos.length ? `<em>${vencidos.length} vencido${vencidos.length > 1 ? "s" : ""}</em>` : ""}</div>
+    <div><span>A pagar em 7 dias</span><strong>${brl(pagarSemana.reduce((a, t) => a + t.valor, 0))}</strong></div>
   </div>
-  ${!S.notas.length&&isEmp()?`<div class="panel" style="margin-bottom:18px"><h2>Nenhuma nota emitida ainda</h2><p class="muted" style="margin:0 0 12px">Envie a planilha do mês para emitir todas as notas de uma vez.</p><button class="btn primary" data-action="nav" data-view="lote">Emitir notas em lote</button></div>`:''}
+  ${!S.notas.length && isEmp() ? `<div class="panel" style="margin-bottom:18px"><h2>Nenhuma nota emitida ainda</h2><p class="muted" style="margin:0 0 12px">Envie a planilha do mês para emitir todas as notas de uma vez.</p><button class="btn primary" data-action="nav" data-view="lote">Emitir notas em lote</button></div>` : ""}
   <div class="grid2">
     <div class="panel"><h2>Contas a pagar até ${fmtDate(em7)}</h2>
-      ${pagarSemana.length?`<ul class="list">${pagarSemana.map(t=>`<li><span>${esc(t.descricao)}<small>${fmtDate(t.venc)}${t.venc<hoje?', vencida':''}</small></span><b>${brl(t.valor)}</b></li>`).join('')}</ul>`:'<p class="empty">Nada para pagar nos próximos dias.</p>'}
+      ${pagarSemana.length ? `<ul class="list">${pagarSemana.map((t) => `<li><span>${esc(t.descricao)}<small>${fmtDate(t.venc)}${t.venc < hoje ? ", vencida" : ""}</small></span><b>${brl(t.valor)}</b></li>`).join("")}</ul>` : '<p class="empty">Nada para pagar nos próximos dias.</p>'}
     </div>
     <div class="panel"><h2>Recebimentos vencidos</h2>
-      ${vencidos.length?`<ul class="list">${vencidos.slice(0,8).map(t=>`<li><span>${esc(t.cliente)}<small>${esc(t.descricao)}, venceu em ${fmtDate(t.venc)}</small></span><b>${brl(t.valor)}</b></li>`).join('')}</ul>`:'<p class="empty">Nenhum recebimento vencido.</p>'}
+      ${
+        vencidos.length
+          ? `<ul class="list">${vencidos
+              .slice(0, 8)
+              .map(
+                (t) =>
+                  `<li><span>${esc(t.cliente)}<small>${esc(t.descricao)}, venceu em ${fmtDate(t.venc)}</small></span><b>${brl(t.valor)}</b></li>`,
+              )
+              .join("")}</ul>`
+          : '<p class="empty">Nenhum recebimento vencido.</p>'
+      }
     </div>
   </div>`;
-};
+      };
 
-/* --- lote --- */
-const HEAD=['tomador_documento','tomador_nome','tomador_email','descricao','valor','codigo_servico','competencia','vencimento'];
-const COLS={
-  doc:['tomador_documento','cnpj','cpf','cnpj/cpf','cpf/cnpj','cnpj_cpf','cpf_cnpj','documento','doc','tomador cnpj'],
-  nome:['tomador_nome','nome','cliente','tomador','razao social','razao_social','nome do cliente'],
-  email:['tomador_email','email','e-mail','email do cliente'],
-  descricao:['descricao','descricao do servico','discriminacao','discriminacao do servico','servico','historico'],
-  valor:['valor','valor do servico','valor_servico','valor total','total'],
-  cServ:['codigo_servico','codigo','cod servico','codigo do servico','codigo de tributacao','ctribnac','item'],
-  competencia:['competencia','data competencia','mes de competencia','data'],
-  vencimento:['vencimento','data vencimento','data de vencimento','venc']
-};
-const norm = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/_/g,' ').replace(/\s+/g,' ').trim();
-function mapHeaders(headers){const map={};headers.forEach(h=>{const nh=norm(h);for(const k in COLS){if(!map[k]&&COLS[k].some(a=>norm(a)===nh)){map[k]=h;break}}});return map}
-function parseValor(v){if(typeof v==='number')return v;let s=String(v??'').replace(/[R$\s]/g,'');if(!s)return NaN;if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');return parseFloat(s)}
-function parseData(v){
-  if(v===''||v==null)return'';
-  if(v instanceof Date&&!isNaN(v))return toISO(new Date(v.getTime()+12*3600e3));
-  if(typeof v==='number'){const d=new Date(Math.round((v-25569)*864e5));return `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())}`}
-  const s=String(v).trim();let m;
-  if(m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/)){const y=m[3].length===2?'20'+m[3]:m[3];return `${y}-${pad(m[2])}-${pad(m[1])}`}
-  if(m=s.match(/^(\d{1,2})\/(\d{4})$/))return `${m[2]}-${pad(m[1])}-01`;
-  if(m=s.match(/^(\d{4})-(\d{2})-(\d{2})/))return `${m[1]}-${m[2]}-${m[3]}`;
-  if(m=s.match(/^(\d{4})-(\d{2})$/))return `${m[1]}-${m[2]}-01`;
-  return 'invalida';
-}
-function validarLinhas(objs){
-  const headers=objs.length?Object.keys(objs[0]):[];
-  const map=mapHeaders(headers);
-  const faltando=['doc','nome','descricao','valor'].filter(k=>!map[k]);
-  const rows=[];
-  objs.forEach((o,idx)=>{
-    const g=k=>map[k]?o[map[k]]:'';
-    if(Object.values(o).every(v=>String(v).trim()===''))return;
-    const r={i:idx+2,doc:digits(g('doc')),nome:String(g('nome')).trim(),email:String(g('email')).trim(),descricao:String(g('descricao')).trim(),valor:parseValor(g('valor')),cServ:digits(g('cServ'))||digits(S.empresa.cServPadrao),competencia:parseData(g('competencia')),vencimento:parseData(g('vencimento')),errors:[],status:'fila'};
-    if(r.doc.length===14?!validCNPJ(r.doc):r.doc.length===11?!validCPF(r.doc):true)r.errors.push('CPF ou CNPJ do tomador inválido');
-    if(!r.nome)r.errors.push('Nome do tomador vazio');
-    if(r.email&&!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email))r.errors.push('E-mail inválido');
-    if(!r.descricao)r.errors.push('Descrição do serviço vazia');
-    if(!(r.valor>0))r.errors.push('Valor deve ser maior que zero');
-    else r.valor=Math.round(r.valor*100)/100;
-    if(r.cServ.length!==6)r.errors.push('Código de serviço precisa ter 6 dígitos (ex.: 01.07.01)');
-    if(r.competencia==='invalida')r.errors.push('Competência em formato desconhecido');
-    if(r.vencimento==='invalida')r.errors.push('Vencimento em formato desconhecido');
-    if(!r.competencia)r.competencia=todayISO();
-    if(!r.vencimento)r.vencimento=addDays(todayISO(),+S.empresa.vencDias||10);
-    rows.push(r);
-  });
-  return{rows,faltando};
-}
-async function lerArquivo(file){
-  if(typeof XLSX==='undefined'){toast('O leitor de planilhas não carregou. Recarregue a página.');return}
-  try{
-    const buf=await file.arrayBuffer();
-    const wb=XLSX.read(buf,{type:'array',cellDates:true});
-    const ws=wb.Sheets[wb.SheetNames[0]];
-    const objs=XLSX.utils.sheet_to_json(ws,{defval:'',raw:true});
-    const {rows,faltando}=validarLinhas(objs);
-    if(faltando.length){
-      const nomes={doc:'CPF/CNPJ do tomador',nome:'nome do tomador',descricao:'descrição',valor:'valor'};
-      batch={phase:'erro',fileName:file.name,msg:`Não encontrei as colunas: ${faltando.map(k=>nomes[k]).join(', ')}. Confira o cabeçalho ou use a planilha modelo.`};
-    }else if(!rows.length){
-      batch={phase:'erro',fileName:file.name,msg:'A planilha não tem linhas preenchidas.'};
-    }else batch={phase:'preview',fileName:file.name,rows};
-    render();
-  }catch(e){batch={phase:'erro',fileName:file.name,msg:'Não consegui ler esse arquivo. Envie um .xlsx ou .csv.'};render()}
-}
-function exemplo(){
-  const nomes=[['Metalúrgica Itapocu Ltda','financeiro@itapocu.com.br'],['Malharia Vale Verde Ltda','contas@valeverde.ind.br'],['Auto Peças Rio Molha','adm@riomolha.com.br'],['Clínica Bem Viver','contato@bemviver.med.br'],['Transportes Schroeder','fiscal@schroeder.log.br'],['Padaria Nereu Ramos','padaria@nereu.com.br'],['Escritório Jaraguá Contábil','jc@jaraguacontabil.com.br']];
-  const objs=nomes.map(([n,e],i)=>({tomador_documento:fmtDoc(cnpjDV(String(10203040+i*1117).padStart(8,'0')+'0001')),tomador_nome:n,tomador_email:e,descricao:'Serviço de manutenção mensal de sistemas',valor:(850+i*175).toFixed(2).replace('.',','),codigo_servico:'01.07.01',competencia:'',vencimento:''}));
-  objs.push({tomador_documento:'12.345.678/0001-00',tomador_nome:'Cliente com CNPJ errado',tomador_email:'',descricao:'Consultoria',valor:'500,00',codigo_servico:'01.07.01',competencia:'',vencimento:''});
-  const {rows}=validarLinhas(objs);
-  batch={phase:'preview',fileName:'dados de exemplo',rows};render();
-}
-function baixarModelo(){
-  if(typeof XLSX==='undefined'){toast('O gerador de planilhas não carregou. Recarregue a página.');return}
-  const ws=XLSX.utils.aoa_to_sheet([HEAD,['12.345.678/0001-95','Cliente Exemplo Ltda','financeiro@cliente.com.br','Serviço de manutenção mensal',1200.5,'01.07.01','01/'+todayISO().slice(5,7)+'/'+todayISO().slice(0,4),addDays(todayISO(),10).split('-').reverse().join('/')]]);
-  ws['!cols']=[{wch:22},{wch:30},{wch:28},{wch:36},{wch:10},{wch:15},{wch:13},{wch:13}];
-  const ins=XLSX.utils.aoa_to_sheet([
-    ['Coluna','Obrigatória','Como preencher'],
-    ['tomador_documento','Sim','CNPJ ou CPF do cliente, com ou sem pontuação'],
-    ['tomador_nome','Sim','Razão social ou nome completo do cliente'],
-    ['tomador_email','Não','E-mail que recebe a nota'],
-    ['descricao','Sim','Descrição do serviço que aparece na nota'],
-    ['valor','Sim','Valor do serviço, ex.: 1200,50'],
-    ['codigo_servico','Não','Código de tributação nacional com 6 dígitos, ex.: 01.07.01. Vazio usa o padrão da empresa'],
-    ['competencia','Não','Data da prestação, ex.: 01/11/2026. Vazio usa a data da emissão'],
-    ['vencimento','Não','Data de vencimento da cobrança. Vazio usa o prazo padrão da empresa'],
-    [],
-    ['Uma linha por nota. Não altere os nomes das colunas da aba Notas.']
-  ]);
-  ins['!cols']=[{wch:20},{wch:12},{wch:90}];
-  const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Notas');XLSX.utils.book_append_sheet(wb,ins,'Instruções');
-  baixar('modelo-notas-em-lote.xlsx',new Blob([XLSX.write(wb,{bookType:'xlsx',type:'array'})]));
-}
-function bindDrop(){
-  const d=document.getElementById('drop');if(!d)return;
-  ['dragenter','dragover'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.add('over')}));
-  ['dragleave','drop'].forEach(ev=>d.addEventListener(ev,e=>{e.preventDefault();d.classList.remove('over')}));
-  d.addEventListener('drop',e=>{const f=e.dataTransfer.files[0];if(f)lerArquivo(f)});
-}
-function rowStatus(r){
-  if(r.errors.length)return'<span class="chip bad">Com erro</span>';
-  return{fila:batch.phase==='preview'?'<span class="chip neutral">Pronta</span>':'<span class="chip neutral">Na fila</span>',enviando:'<span class="chip brand pulse">Enviando</span>',autorizada:`<span class="chip ok">Autorizada nº ${r.numero}</span>`}[r.status];
-}
-V.lote=()=>{
-  if(!batch||batch.phase==='erro')return`
+      /* --- lote --- */
+      const HEAD = [
+        "tomador_documento",
+        "tomador_nome",
+        "tomador_email",
+        "descricao",
+        "valor",
+        "codigo_servico",
+        "competencia",
+        "vencimento",
+      ];
+      const COLS = {
+        doc: [
+          "tomador_documento",
+          "cnpj",
+          "cpf",
+          "cnpj/cpf",
+          "cpf/cnpj",
+          "cnpj_cpf",
+          "cpf_cnpj",
+          "documento",
+          "doc",
+          "tomador cnpj",
+        ],
+        nome: [
+          "tomador_nome",
+          "nome",
+          "cliente",
+          "tomador",
+          "razao social",
+          "razao_social",
+          "nome do cliente",
+        ],
+        email: ["tomador_email", "email", "e-mail", "email do cliente"],
+        descricao: [
+          "descricao",
+          "descricao do servico",
+          "discriminacao",
+          "discriminacao do servico",
+          "servico",
+          "historico",
+        ],
+        valor: [
+          "valor",
+          "valor do servico",
+          "valor_servico",
+          "valor total",
+          "total",
+        ],
+        cServ: [
+          "codigo_servico",
+          "codigo",
+          "cod servico",
+          "codigo do servico",
+          "codigo de tributacao",
+          "ctribnac",
+          "item",
+        ],
+        competencia: [
+          "competencia",
+          "data competencia",
+          "mes de competencia",
+          "data",
+        ],
+        vencimento: [
+          "vencimento",
+          "data vencimento",
+          "data de vencimento",
+          "venc",
+        ],
+      };
+      const norm = (s) =>
+        String(s)
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase()
+          .replace(/_/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+      function mapHeaders(headers) {
+        const map = {};
+        headers.forEach((h) => {
+          const nh = norm(h);
+          for (const k in COLS) {
+            if (!map[k] && COLS[k].some((a) => norm(a) === nh)) {
+              map[k] = h;
+              break;
+            }
+          }
+        });
+        return map;
+      }
+      function parseValor(v) {
+        if (typeof v === "number") return v;
+        let s = String(v ?? "").replace(/[R$\s]/g, "");
+        if (!s) return NaN;
+        if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+        return parseFloat(s);
+      }
+      function parseData(v) {
+        if (v === "" || v == null) return "";
+        if (v instanceof Date && !isNaN(v))
+          return toISO(new Date(v.getTime() + 12 * 3600e3));
+        if (typeof v === "number") {
+          const d = new Date(Math.round((v - 25569) * 864e5));
+          return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
+        }
+        const s = String(v).trim();
+        let m;
+        if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/))) {
+          const y = m[3].length === 2 ? "20" + m[3] : m[3];
+          return `${y}-${pad(m[2])}-${pad(m[1])}`;
+        }
+        if ((m = s.match(/^(\d{1,2})\/(\d{4})$/)))
+          return `${m[2]}-${pad(m[1])}-01`;
+        if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)))
+          return `${m[1]}-${m[2]}-${m[3]}`;
+        if ((m = s.match(/^(\d{4})-(\d{2})$/))) return `${m[1]}-${m[2]}-01`;
+        return "invalida";
+      }
+      function validarLinhas(objs) {
+        const headers = objs.length ? Object.keys(objs[0]) : [];
+        const map = mapHeaders(headers);
+        const faltando = ["doc", "nome", "descricao", "valor"].filter(
+          (k) => !map[k],
+        );
+        const rows = [];
+        objs.forEach((o, idx) => {
+          const g = (k) => (map[k] ? o[map[k]] : "");
+          if (Object.values(o).every((v) => String(v).trim() === "")) return;
+          const r = {
+            i: idx + 2,
+            doc: digits(g("doc")),
+            nome: String(g("nome")).trim(),
+            email: String(g("email")).trim(),
+            descricao: String(g("descricao")).trim(),
+            valor: parseValor(g("valor")),
+            cServ: digits(g("cServ")) || digits(S.empresa.cServPadrao),
+            competencia: parseData(g("competencia")),
+            vencimento: parseData(g("vencimento")),
+            errors: [],
+            status: "fila",
+          };
+          if (
+            r.doc.length === 14
+              ? !validCNPJ(r.doc)
+              : r.doc.length === 11
+                ? !validCPF(r.doc)
+                : true
+          )
+            r.errors.push("CPF ou CNPJ do tomador inválido");
+          if (!r.nome) r.errors.push("Nome do tomador vazio");
+          if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email))
+            r.errors.push("E-mail inválido");
+          if (!r.descricao) r.errors.push("Descrição do serviço vazia");
+          if (!(r.valor > 0)) r.errors.push("Valor deve ser maior que zero");
+          else r.valor = Math.round(r.valor * 100) / 100;
+          if (r.cServ.length !== 6)
+            r.errors.push(
+              "Código de serviço precisa ter 6 dígitos (ex.: 01.07.01)",
+            );
+          if (r.competencia === "invalida")
+            r.errors.push("Competência em formato desconhecido");
+          if (r.vencimento === "invalida")
+            r.errors.push("Vencimento em formato desconhecido");
+          if (!r.competencia) r.competencia = todayISO();
+          if (!r.vencimento)
+            r.vencimento = addDays(todayISO(), +S.empresa.vencDias || 10);
+          rows.push(r);
+        });
+        return { rows, faltando };
+      }
+      async function lerArquivo(file) {
+        if (typeof XLSX === "undefined") {
+          toast("O leitor de planilhas não carregou. Recarregue a página.");
+          return;
+        }
+        try {
+          const buf = await file.arrayBuffer();
+          const wb = XLSX.read(buf, { type: "array", cellDates: true });
+          const ws = wb.Sheets[wb.SheetNames[0]];
+          const objs = XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
+          const { rows, faltando } = validarLinhas(objs);
+          if (faltando.length) {
+            const nomes = {
+              doc: "CPF/CNPJ do tomador",
+              nome: "nome do tomador",
+              descricao: "descrição",
+              valor: "valor",
+            };
+            batch = {
+              phase: "erro",
+              fileName: file.name,
+              msg: `Não encontrei as colunas: ${faltando.map((k) => nomes[k]).join(", ")}. Confira o cabeçalho ou use a planilha modelo.`,
+            };
+          } else if (!rows.length) {
+            batch = {
+              phase: "erro",
+              fileName: file.name,
+              msg: "A planilha não tem linhas preenchidas.",
+            };
+          } else batch = { phase: "preview", fileName: file.name, rows };
+          render();
+        } catch (e) {
+          batch = {
+            phase: "erro",
+            fileName: file.name,
+            msg: "Não consegui ler esse arquivo. Envie um .xlsx ou .csv.",
+          };
+          render();
+        }
+      }
+      function exemplo() {
+        const nomes = [
+          ["Metalúrgica Itapocu Ltda", "financeiro@itapocu.com.br"],
+          ["Malharia Vale Verde Ltda", "contas@valeverde.ind.br"],
+          ["Auto Peças Rio Molha", "adm@riomolha.com.br"],
+          ["Clínica Bem Viver", "contato@bemviver.med.br"],
+          ["Transportes Schroeder", "fiscal@schroeder.log.br"],
+          ["Padaria Nereu Ramos", "padaria@nereu.com.br"],
+          ["Escritório Jaraguá Contábil", "jc@jaraguacontabil.com.br"],
+        ];
+        const objs = nomes.map(([n, e], i) => ({
+          tomador_documento: fmtDoc(
+            cnpjDV(String(10203040 + i * 1117).padStart(8, "0") + "0001"),
+          ),
+          tomador_nome: n,
+          tomador_email: e,
+          descricao: "Serviço de manutenção mensal de sistemas",
+          valor: (850 + i * 175).toFixed(2).replace(".", ","),
+          codigo_servico: "01.07.01",
+          competencia: "",
+          vencimento: "",
+        }));
+        objs.push({
+          tomador_documento: "12.345.678/0001-00",
+          tomador_nome: "Cliente com CNPJ errado",
+          tomador_email: "",
+          descricao: "Consultoria",
+          valor: "500,00",
+          codigo_servico: "01.07.01",
+          competencia: "",
+          vencimento: "",
+        });
+        const { rows } = validarLinhas(objs);
+        batch = { phase: "preview", fileName: "dados de exemplo", rows };
+        render();
+      }
+      function baixarModelo() {
+        if (typeof XLSX === "undefined") {
+          toast("O gerador de planilhas não carregou. Recarregue a página.");
+          return;
+        }
+        const ws = XLSX.utils.aoa_to_sheet([
+          HEAD,
+          [
+            "12.345.678/0001-95",
+            "Cliente Exemplo Ltda",
+            "financeiro@cliente.com.br",
+            "Serviço de manutenção mensal",
+            1200.5,
+            "01.07.01",
+            "01/" + todayISO().slice(5, 7) + "/" + todayISO().slice(0, 4),
+            addDays(todayISO(), 10).split("-").reverse().join("/"),
+          ],
+        ]);
+        ws["!cols"] = [
+          { wch: 22 },
+          { wch: 30 },
+          { wch: 28 },
+          { wch: 36 },
+          { wch: 10 },
+          { wch: 15 },
+          { wch: 13 },
+          { wch: 13 },
+        ];
+        const ins = XLSX.utils.aoa_to_sheet([
+          ["Coluna", "Obrigatória", "Como preencher"],
+          [
+            "tomador_documento",
+            "Sim",
+            "CNPJ ou CPF do cliente, com ou sem pontuação",
+          ],
+          ["tomador_nome", "Sim", "Razão social ou nome completo do cliente"],
+          ["tomador_email", "Não", "E-mail que recebe a nota"],
+          ["descricao", "Sim", "Descrição do serviço que aparece na nota"],
+          ["valor", "Sim", "Valor do serviço, ex.: 1200,50"],
+          [
+            "codigo_servico",
+            "Não",
+            "Código de tributação nacional com 6 dígitos, ex.: 01.07.01. Vazio usa o padrão da empresa",
+          ],
+          [
+            "competencia",
+            "Não",
+            "Data da prestação, ex.: 01/11/2026. Vazio usa a data da emissão",
+          ],
+          [
+            "vencimento",
+            "Não",
+            "Data de vencimento da cobrança. Vazio usa o prazo padrão da empresa",
+          ],
+          [],
+          ["Uma linha por nota. Não altere os nomes das colunas da aba Notas."],
+        ]);
+        ins["!cols"] = [{ wch: 20 }, { wch: 12 }, { wch: 90 }];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Notas");
+        XLSX.utils.book_append_sheet(wb, ins, "Instruções");
+        baixar(
+          "modelo-notas-em-lote.xlsx",
+          new Blob([XLSX.write(wb, { bookType: "xlsx", type: "array" })]),
+        );
+      }
+      function bindDrop() {
+        const d = document.getElementById("drop");
+        if (!d) return;
+        ["dragenter", "dragover"].forEach((ev) =>
+          d.addEventListener(ev, (e) => {
+            e.preventDefault();
+            d.classList.add("over");
+          }),
+        );
+        ["dragleave", "drop"].forEach((ev) =>
+          d.addEventListener(ev, (e) => {
+            e.preventDefault();
+            d.classList.remove("over");
+          }),
+        );
+        d.addEventListener("drop", (e) => {
+          const f = e.dataTransfer.files[0];
+          if (f) lerArquivo(f);
+        });
+      }
+      function rowStatus(r) {
+        if (r.errors.length) return '<span class="chip bad">Com erro</span>';
+        return {
+          fila:
+            batch.phase === "preview"
+              ? '<span class="chip neutral">Pronta</span>'
+              : '<span class="chip neutral">Na fila</span>',
+          enviando: '<span class="chip brand pulse">Enviando</span>',
+          autorizada: `<span class="chip ok">Autorizada nº ${r.numero}</span>`,
+        }[r.status];
+      }
+      V.lote = () => {
+        if (!batch || batch.phase === "erro")
+          return `
   <h1>Emitir notas em lote</h1>
   <p class="lead">As linhas são conferidas antes do envio. Cada nota autorizada gera um título em Contas a receber.</p>
   ${certAlerta()}
-  ${batch&&batch.phase==='erro'?`<div class="banner bad"><b>${esc(batch.fileName)}</b>${esc(batch.msg)}</div>`:''}
+  ${batch && batch.phase === "erro" ? `<div class="banner bad"><b>${esc(batch.fileName)}</b>${esc(batch.msg)}</div>` : ""}
   <label class="drop" id="drop" for="file">
-    ${icon('upload')}<strong>Escolher planilha</strong><span class="muted">ou arraste o arquivo .xlsx ou .csv para cá</span>
+    ${icon("upload")}<strong>Escolher planilha</strong><span class="muted">ou arraste o arquivo .xlsx ou .csv para cá</span>
     <input type="file" id="file" accept=".xlsx,.xls,.csv">
   </label>
   <div class="row" style="margin-top:14px">
@@ -612,128 +2138,247 @@ V.lote=()=>{
   </div>
   <details><summary>Quais colunas a planilha precisa ter</summary>
     <p>Obrigatórias: <code>tomador_documento</code> (CPF ou CNPJ), <code>tomador_nome</code>, <code>descricao</code> e <code>valor</code>. Opcionais: <code>tomador_email</code>, <code>codigo_servico</code> (código de tributação nacional, 6 dígitos), <code>competencia</code> e <code>vencimento</code>.</p>
-    <p>Nomes parecidos também funcionam, como “CNPJ”, “Cliente” ou “Valor do serviço”. Sem código de serviço, uso o padrão definido em Dados da empresa. Sem vencimento, uso ${+S.empresa.vencDias||10} dias após a emissão.</p>
+    <p>Nomes parecidos também funcionam, como “CNPJ”, “Cliente” ou “Valor do serviço”. Sem código de serviço, uso o padrão definido em Dados da empresa. Sem vencimento, uso ${+S.empresa.vencDias || 10} dias após a emissão.</p>
   </details>`;
-  const ok=batch.rows.filter(r=>!r.errors.length), bad=batch.rows.length-ok.length;
-  const total=ok.reduce((a,r)=>a+r.valor,0);
-  const done=batch.rows.filter(r=>r.status==='autorizada').length;
-  let top='';
-  if(batch.phase==='preview')top=certAlerta()+`
-    <div class="spread"><div><h1>Conferir lote</h1><p class="lead" style="margin:0">${esc(batch.fileName)}: ${ok.length} nota${ok.length!==1?'s':''} pronta${ok.length!==1?'s':''}, total de ${brl(total)}${bad?`. ${bad} linha${bad>1?'s':''} com erro ficará${bad>1?'ão':''} de fora.`:'.'}</p></div>
-    <div class="row"><button class="btn" data-action="trocar">Trocar planilha</button><button class="btn primary" data-action="emitir" ${ok.length?'':'disabled'}>Emitir ${ok.length} nota${ok.length!==1?'s':''}</button></div></div>`;
-  else if(batch.phase==='emitting')top=`
+        const ok = batch.rows.filter((r) => !r.errors.length),
+          bad = batch.rows.length - ok.length;
+        const total = ok.reduce((a, r) => a + r.valor, 0);
+        const done = batch.rows.filter((r) => r.status === "autorizada").length;
+        let top = "";
+        if (batch.phase === "preview")
+          top =
+            certAlerta() +
+            `
+    <div class="spread"><div><h1>Conferir lote</h1><p class="lead" style="margin:0">${esc(batch.fileName)}: ${ok.length} nota${ok.length !== 1 ? "s" : ""} pronta${ok.length !== 1 ? "s" : ""}, total de ${brl(total)}${bad ? `. ${bad} linha${bad > 1 ? "s" : ""} com erro ficará${bad > 1 ? "ão" : ""} de fora.` : "."}</p></div>
+    <div class="row"><button class="btn" data-action="trocar">Trocar planilha</button><button class="btn primary" data-action="emitir" ${ok.length ? "" : "disabled"}>Emitir ${ok.length} nota${ok.length !== 1 ? "s" : ""}</button></div></div>`;
+        else if (batch.phase === "emitting")
+          top = `
     <h1>Emitindo lote</h1><p class="lead" style="margin:0"><span id="progTxt">${done} de ${ok.length} autorizadas</span>. Pode continuar usando o sistema.</p>
-    <div class="progress"><i id="prog" style="width:${ok.length?done/ok.length*100:0}%"></i></div>`;
-  else top=`
+    <div class="progress"><i id="prog" style="width:${ok.length ? (done / ok.length) * 100 : 0}%"></i></div>`;
+        else
+          top = `
     <h1>Lote concluído</h1>
-    <div class="banner"><b>${done} nota${done!==1?'s':''} autorizada${done!==1?'s':''}, total de ${brl(total)}</b>As contas a receber foram criadas com os vencimentos da planilha.${bad?` ${bad} linha${bad>1?'s':''} com erro não ${bad>1?'foram enviadas':'foi enviada'}.`:''}</div>
+    <div class="banner"><b>${done} nota${done !== 1 ? "s" : ""} autorizada${done !== 1 ? "s" : ""}, total de ${brl(total)}</b>As contas a receber foram criadas com os vencimentos da planilha.${bad ? ` ${bad} linha${bad > 1 ? "s" : ""} com erro não ${bad > 1 ? "foram enviadas" : "foi enviada"}.` : ""}</div>
     <div class="row" style="margin-bottom:18px"><button class="btn primary" data-action="nav" data-view="notas">Ver notas emitidas</button><button class="btn" data-action="trocar">Emitir outro lote</button></div>`;
-  return top+`
+        return (
+          top +
+          `
   <div class="tablewrap"><table>
     <thead><tr><th>Linha</th><th>Tomador</th><th>Serviço</th><th class="num">Valor</th><th>Vencimento</th><th>Situação</th></tr></thead>
-    <tbody>${batch.rows.map(r=>`<tr>
+    <tbody>${batch.rows
+      .map(
+        (r) => `<tr>
       <td class="muted">${r.i}</td>
-      <td>${esc(r.nome)||'<span class="muted">sem nome</span>'}<span class="sub">${esc(fmtDoc(r.doc))||'sem documento'}</span></td>
+      <td>${esc(r.nome) || '<span class="muted">sem nome</span>'}<span class="sub">${esc(fmtDoc(r.doc)) || "sem documento"}</span></td>
       <td>${esc(r.descricao)}<span class="sub">${fmtServ(r.cServ)}</span></td>
-      <td class="num">${r.valor>0?brl(r.valor):'—'}</td>
+      <td class="num">${r.valor > 0 ? brl(r.valor) : "—"}</td>
       <td>${fmtDate(r.vencimento)}</td>
-      <td id="st-${r.i}">${rowStatus(r)}${r.errors.length?`<ul class="errlist">${r.errors.map(e=>`<li>${esc(e)}</li>`).join('')}</ul>`:''}</td>
-    </tr>`).join('')}</tbody>
-  </table></div>`;
-};
+      <td id="st-${r.i}">${rowStatus(r)}${r.errors.length ? `<ul class="errlist">${r.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}</td>
+    </tr>`,
+      )
+      .join("")}</tbody>
+  </table></div>`
+        );
+      };
 
-function gerarChave(numero){
-  const e=S.empresa;const now=new Date();
-  const base=e.ibge+'2'+'2'+digits(e.cnpj).padStart(14,'0')+String(numero).padStart(13,'0')+String(now.getFullYear()).slice(2)+pad(now.getMonth()+1)+String(Math.floor(Math.random()*1e9)).padStart(9,'0');
-  let t=0,p=2;for(let i=base.length-1;i>=0;i--){t+=+base[i]*p;p=p===9?2:p+1}
-  const r=t%11;return base+(r<2?0:11-r);
-}
-function criarNota(r,loteId){
-  const e=S.empresa;const nDPS=e.proxDPS++;const numero=e.proxNFSe++;
-  const nota={id:uid(),numero,nDPS,serie:e.serie,chave:gerarChave(numero),dhEmi:new Date().toISOString(),competencia:r.competencia,tomador:{doc:r.doc,nome:r.nome,email:r.email},descricao:r.descricao,cServ:r.cServ,valor:r.valor,status:'autorizada',loteId};
-  S.notas.unshift(nota);
-  S.receber.unshift({id:uid(),notaId:nota.id,descricao:`NFS-e nº ${numero}`,cliente:r.nome,valor:r.valor,venc:r.vencimento,recebidoEm:null});
-  save();return nota;
-}
-async function emitirLote(){
-  const ok=batch.rows.filter(r=>!r.errors.length);if(!ok.length)return;
-  const b=batch;b.phase='emitting';render();
-  const loteId=uid();let done=0;
-  for(const r of ok){
-    r.status='enviando';upd(b,r);
-    await sleep(380+Math.random()*320);
-    const n=criarNota(r,loteId);r.numero=n.numero;r.status='autorizada';done++;upd(b,r);
-    const p=document.getElementById('prog'),pt=document.getElementById('progTxt');
-    if(batch===b&&view==='lote'){if(p)p.style.width=(done/ok.length*100)+'%';if(pt)pt.textContent=`${done} de ${ok.length} autorizadas`}
-  }
-  S.lotes.unshift({id:loteId,data:new Date().toISOString(),qtd:done,total:ok.reduce((a,r)=>a+r.valor,0)});save();
-  b.phase='done';
-  if(view==='lote'&&batch===b)render();else renderShell();
-  toast(`${done} nota${done!==1?'s':''} emitida${done!==1?'s':''}`);
-}
-function upd(b,r){if(batch!==b||view!=='lote')return;const el=document.getElementById('st-'+r.i);if(el)el.innerHTML=rowStatus(r)}
+      function gerarChave(numero) {
+        const e = S.empresa;
+        const now = new Date();
+        const base =
+          e.ibge +
+          "2" +
+          "2" +
+          digits(e.cnpj).padStart(14, "0") +
+          String(numero).padStart(13, "0") +
+          String(now.getFullYear()).slice(2) +
+          pad(now.getMonth() + 1) +
+          String(Math.floor(Math.random() * 1e9)).padStart(9, "0");
+        let t = 0,
+          p = 2;
+        for (let i = base.length - 1; i >= 0; i--) {
+          t += +base[i] * p;
+          p = p === 9 ? 2 : p + 1;
+        }
+        const r = t % 11;
+        return base + (r < 2 ? 0 : 11 - r);
+      }
+      function criarNota(r, loteId) {
+        const e = S.empresa;
+        const nDPS = e.proxDPS++;
+        const numero = e.proxNFSe++;
+        const nota = {
+          id: uid(),
+          numero,
+          nDPS,
+          serie: e.serie,
+          chave: gerarChave(numero),
+          dhEmi: new Date().toISOString(),
+          competencia: r.competencia,
+          tomador: { doc: r.doc, nome: r.nome, email: r.email },
+          descricao: r.descricao,
+          cServ: r.cServ,
+          valor: r.valor,
+          status: "autorizada",
+          loteId,
+        };
+        S.notas.unshift(nota);
+        S.receber.unshift({
+          id: uid(),
+          notaId: nota.id,
+          descricao: `NFS-e nº ${numero}`,
+          cliente: r.nome,
+          valor: r.valor,
+          venc: r.vencimento,
+          recebidoEm: null,
+        });
+        save();
+        return nota;
+      }
+      async function emitirLote() {
+        const ok = batch.rows.filter((r) => !r.errors.length);
+        if (!ok.length) return;
+        const b = batch;
+        b.phase = "emitting";
+        render();
+        const loteId = uid();
+        let done = 0;
+        for (const r of ok) {
+          r.status = "enviando";
+          upd(b, r);
+          await sleep(380 + Math.random() * 320);
+          const n = criarNota(r, loteId);
+          r.numero = n.numero;
+          r.status = "autorizada";
+          done++;
+          upd(b, r);
+          const p = document.getElementById("prog"),
+            pt = document.getElementById("progTxt");
+          if (batch === b && view === "lote") {
+            if (p) p.style.width = (done / ok.length) * 100 + "%";
+            if (pt) pt.textContent = `${done} de ${ok.length} autorizadas`;
+          }
+        }
+        S.lotes.unshift({
+          id: loteId,
+          data: new Date().toISOString(),
+          qtd: done,
+          total: ok.reduce((a, r) => a + r.valor, 0),
+        });
+        save();
+        b.phase = "done";
+        if (view === "lote" && batch === b) render();
+        else renderShell();
+        toast(
+          `${done} nota${done !== 1 ? "s" : ""} emitida${done !== 1 ? "s" : ""}`,
+        );
+      }
+      function upd(b, r) {
+        if (batch !== b || view !== "lote") return;
+        const el = document.getElementById("st-" + r.i);
+        if (el) el.innerHTML = rowStatus(r);
+      }
 
-/* --- notas --- */
-function notasFiltradas(ym,st){return S.notas.filter(n=>n.competencia.slice(0,7)===ym&&(st==='todas'||n.status===st))}
-V.notas=()=>{
-  const list=notasFiltradas(F.notasMes,F.notasStatus);
-  const tot=list.filter(n=>n.status==='autorizada').reduce((a,n)=>a+n.valor,0);
-  return`
+      /* --- notas --- */
+      function notasFiltradas(ym, st) {
+        return S.notas.filter(
+          (n) =>
+            n.competencia.slice(0, 7) === ym &&
+            (st === "todas" || n.status === st),
+        );
+      }
+      V.notas = () => {
+        const list = notasFiltradas(F.notasMes, F.notasStatus);
+        const tot = list
+          .filter((n) => n.status === "autorizada")
+          .reduce((a, n) => a + n.valor, 0);
+        return `
   <div class="spread"><h1>Notas emitidas</h1>
   <div class="filters">
     <div class="field"><label for="fm">Competência</label><input type="month" id="fm" data-filter="notasMes" value="${F.notasMes}"></div>
     <div class="field"><label for="fs">Situação</label><select id="fs" data-filter="notasStatus">
-      ${[['todas','Todas'],['autorizada','Autorizadas'],['cancelada','Canceladas']].map(([v,l])=>`<option value="${v}" ${F.notasStatus===v?'selected':''}>${l}</option>`).join('')}
+      ${[
+        ["todas", "Todas"],
+        ["autorizada", "Autorizadas"],
+        ["cancelada", "Canceladas"],
+      ]
+        .map(
+          ([v, l]) =>
+            `<option value="${v}" ${F.notasStatus === v ? "selected" : ""}>${l}</option>`,
+        )
+        .join("")}
     </select></div>
-    <button class="btn" data-action="zipMes" ${list.length?'':'disabled'}>Baixar XMLs (.zip)</button>
+    <button class="btn" data-action="zipMes" ${list.length ? "" : "disabled"}>Baixar XMLs (.zip)</button>
   </div></div>
-  ${list.length?`<div class="tablewrap"><table>
+  ${
+    list.length
+      ? `<div class="tablewrap"><table>
     <thead><tr><th>Nº</th><th>Emissão</th><th>Tomador</th><th class="num">Valor</th><th>Situação</th><th></th></tr></thead>
-    <tbody>${list.map(n=>`<tr>
+    <tbody>${list
+      .map(
+        (n) => `<tr>
       <td><b>${n.numero}</b></td><td>${fmtDateTime(n.dhEmi)}</td>
       <td>${esc(n.tomador.nome)}<span class="sub">${fmtDoc(n.tomador.doc)}</span></td>
       <td class="num">${brl(n.valor)}</td>
-      <td>${n.status==='autorizada'?'<span class="chip ok">Autorizada</span>':'<span class="chip bad">Cancelada</span>'}</td>
-      <td><div class="actions"><button class="link" data-action="ver" data-id="${n.id}">Ver</button><button class="link" data-action="xml" data-id="${n.id}">XML</button>${isEmp()&&n.status==='autorizada'?`<button class="link bad" data-action="cancelar" data-id="${n.id}">Cancelar</button>`:''}</div></td>
-    </tr>`).join('')}</tbody>
-    <tfoot><tr><td colspan="3">${list.length} nota${list.length!==1?'s':''}</td><td class="num">${brl(tot)}</td><td colspan="2"></td></tr></tfoot>
-  </table></div>`:`<div class="panel"><p class="empty" style="margin:0">Nenhuma nota em ${monthLabel(F.notasMes).toLowerCase()}.${isEmp()?' <button class="link" data-action="nav" data-view="lote">Emitir um lote</button>':''}</p></div>`}`;
-};
-function verNota(id){
-  const n=S.notas.find(x=>x.id===id);if(!n)return;const e=S.empresa;
-  openModal(`
+      <td>${n.status === "autorizada" ? '<span class="chip ok">Autorizada</span>' : '<span class="chip bad">Cancelada</span>'}</td>
+      <td><div class="actions"><button class="link" data-action="ver" data-id="${n.id}">Ver</button><button class="link" data-action="xml" data-id="${n.id}">XML</button>${isEmp() && n.status === "autorizada" ? `<button class="link bad" data-action="cancelar" data-id="${n.id}">Cancelar</button>` : ""}</div></td>
+    </tr>`,
+      )
+      .join("")}</tbody>
+    <tfoot><tr><td colspan="3">${list.length} nota${list.length !== 1 ? "s" : ""}</td><td class="num">${brl(tot)}</td><td colspan="2"></td></tr></tfoot>
+  </table></div>`
+      : `<div class="panel"><p class="empty" style="margin:0">Nenhuma nota em ${monthLabel(F.notasMes).toLowerCase()}.${isEmp() ? ' <button class="link" data-action="nav" data-view="lote">Emitir um lote</button>' : ""}</p></div>`
+  }`;
+      };
+      function verNota(id) {
+        const n = S.notas.find((x) => x.id === id);
+        if (!n) return;
+        const e = S.empresa;
+        openModal(`
   <div class="doc">
     <header><b>NFS-e nº ${n.numero}</b><span>Documento auxiliar da nota fiscal de serviço eletrônica</span></header>
     <section class="stampnote">Simulação de homologação. Sem validade fiscal.</section>
-    ${n.status==='cancelada'?`<section class="cancelled">Nota cancelada. Motivo: ${esc(n.motivoCanc)}</section>`:''}
-    <section><h3>Prestador</h3>${esc(e.razao)}<br>CNPJ ${fmtDoc(e.cnpj)}${e.im?`, IM ${esc(e.im)}`:''}<br>Jaraguá do Sul/SC, optante pelo Simples Nacional</section>
-    <section><h3>Tomador</h3>${esc(n.tomador.nome)}<br>${n.tomador.doc.length===14?'CNPJ':'CPF'} ${fmtDoc(n.tomador.doc)}${n.tomador.email?`<br>${esc(n.tomador.email)}`:''}</section>
+    ${n.status === "cancelada" ? `<section class="cancelled">Nota cancelada. Motivo: ${esc(n.motivoCanc)}</section>` : ""}
+    <section><h3>Prestador</h3>${esc(e.razao)}<br>CNPJ ${fmtDoc(e.cnpj)}${e.im ? `, IM ${esc(e.im)}` : ""}<br>Jaraguá do Sul/SC, optante pelo Simples Nacional</section>
+    <section><h3>Tomador</h3>${esc(n.tomador.nome)}<br>${n.tomador.doc.length === 14 ? "CNPJ" : "CPF"} ${fmtDoc(n.tomador.doc)}${n.tomador.email ? `<br>${esc(n.tomador.email)}` : ""}</section>
     <section><h3>Serviço</h3>${esc(n.descricao)}<br><span class="muted">Código de tributação nacional ${fmtServ(n.cServ)}</span></section>
     <section><h3>Datas</h3>Emissão ${fmtDateTime(n.dhEmi)}, competência ${fmtDate(n.competencia)}, DPS série ${esc(n.serie)} nº ${n.nDPS}</section>
     <section class="total"><span>Valor do serviço</span><strong>${brl(n.valor)}</strong></section>
     <section><h3>Chave de acesso</h3><span class="key">${n.chave}</span></section>
   </div>
   <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="xml" data-id="${n.id}">Baixar XML</button><button class="btn primary" data-action="fechar">Fechar</button></div>`);
-}
-function pedirCancelamento(id){
-  const n=S.notas.find(x=>x.id===id);if(!n)return;
-  const t=S.receber.find(x=>x.notaId===id);
-  openModal(`<h2>Cancelar NFS-e nº ${n.numero}</h2>
-  <p class="muted">${esc(n.tomador.nome)}, ${brl(n.valor)}. ${t&&t.recebidoEm?'Este valor já foi recebido, então o título continuará no financeiro.':'O título a receber desta nota será removido.'}</p>
+      }
+      function pedirCancelamento(id) {
+        const n = S.notas.find((x) => x.id === id);
+        if (!n) return;
+        const t = S.receber.find((x) => x.notaId === id);
+        openModal(`<h2>Cancelar NFS-e nº ${n.numero}</h2>
+  <p class="muted">${esc(n.tomador.nome)}, ${brl(n.valor)}. ${t && t.recebidoEm ? "Este valor já foi recebido, então o título continuará no financeiro." : "O título a receber desta nota será removido."}</p>
   <div class="field"><label for="motivo">Motivo do cancelamento</label><input id="motivo" placeholder="Ex.: erro no valor do serviço" maxlength="255"></div>
   <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="confirmaCancel" data-id="${id}">Cancelar nota</button></div>`);
-}
-function confirmaCancel(id){
-  const m=(document.getElementById('motivo').value||'').trim();
-  if(m.length<15){toast('Descreva o motivo com pelo menos 15 caracteres.');return}
-  const n=S.notas.find(x=>x.id===id);n.status='cancelada';n.motivoCanc=m;n.dhCanc=new Date().toISOString();
-  S.receber=S.receber.filter(t=>!(t.notaId===id&&!t.recebidoEm));
-  save();closeModal();render();toast(`NFS-e nº ${n.numero} cancelada`);
-}
-const xe = s => esc(s);
-function xmlNota(n){
-  const e=S.empresa,tag=n.tomador.doc.length===14?'CNPJ':'CPF';
-  return `<?xml version="1.0" encoding="UTF-8"?>
+      }
+      function confirmaCancel(id) {
+        const m = (document.getElementById("motivo").value || "").trim();
+        if (m.length < 15) {
+          toast("Descreva o motivo com pelo menos 15 caracteres.");
+          return;
+        }
+        const n = S.notas.find((x) => x.id === id);
+        n.status = "cancelada";
+        n.motivoCanc = m;
+        n.dhCanc = new Date().toISOString();
+        S.receber = S.receber.filter(
+          (t) => !(t.notaId === id && !t.recebidoEm),
+        );
+        save();
+        closeModal();
+        render();
+        toast(`NFS-e nº ${n.numero} cancelada`);
+      }
+      const xe = (s) => esc(s);
+      function xmlNota(n) {
+        const e = S.empresa,
+          tag = n.tomador.doc.length === 14 ? "CNPJ" : "CPF";
+        return `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Arquivo gerado em simulação de homologação. Sem validade fiscal. -->
 <NFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
   <infNFSe Id="NFS${n.chave}">
@@ -743,9 +2388,9 @@ function xmlNota(n){
     <cLocIncid>${e.ibge}</cLocIncid>
     <ambGer>2</ambGer>
     <dhProc>${n.dhEmi}</dhProc>
-    <cStat>${n.status==='cancelada'?'101':'100'}</cStat>
+    <cStat>${n.status === "cancelada" ? "101" : "100"}</cStat>
     <DPS versao="1.00">
-      <infDPS Id="DPS${e.ibge}2${digits(e.cnpj)}${String(e.serie).padStart(5,'0')}${String(n.nDPS).padStart(15,'0')}">
+      <infDPS Id="DPS${e.ibge}2${digits(e.cnpj)}${String(e.serie).padStart(5, "0")}${String(n.nDPS).padStart(15, "0")}">
         <tpAmb>2</tpAmb>
         <dhEmi>${n.dhEmi}</dhEmi>
         <serie>${xe(n.serie)}</serie>
@@ -754,12 +2399,12 @@ function xmlNota(n){
         <tpEmit>1</tpEmit>
         <cLocEmi>${e.ibge}</cLocEmi>
         <prest>
-          <CNPJ>${digits(e.cnpj)}</CNPJ>${e.im?`\n          <IM>${xe(e.im)}</IM>`:''}
+          <CNPJ>${digits(e.cnpj)}</CNPJ>${e.im ? `\n          <IM>${xe(e.im)}</IM>` : ""}
           <regTrib><opSimpNac>3</opSimpNac><regEspTrib>0</regEspTrib></regTrib>
         </prest>
         <toma>
           <${tag}>${n.tomador.doc}</${tag}>
-          <xNome>${xe(n.tomador.nome)}</xNome>${n.tomador.email?`\n          <email>${xe(n.tomador.email)}</email>`:''}
+          <xNome>${xe(n.tomador.nome)}</xNome>${n.tomador.email ? `\n          <email>${xe(n.tomador.email)}</email>` : ""}
         </toma>
         <serv>
           <locPrest><cLocPrestacao>${e.ibge}</cLocPrestacao></locPrest>
@@ -773,129 +2418,322 @@ function xmlNota(n){
     </DPS>
   </infNFSe>
 </NFSe>`;
-}
-async function zipNotas(list,nome){
-  if(!list.length){toast('Nenhuma nota nesse período.');return}
-  if(typeof JSZip==='undefined'){toast('O compactador não carregou. Recarregue a página.');return}
-  const z=new JSZip();list.forEach(n=>z.file(`NFSe-${n.numero}${n.status==='cancelada'?'-cancelada':''}.xml`,xmlNota(n)));
-  baixar(nome,await z.generateAsync({type:'blob'}));
-}
+      }
+      async function zipNotas(list, nome) {
+        if (!list.length) {
+          toast("Nenhuma nota nesse período.");
+          return;
+        }
+        if (typeof JSZip === "undefined") {
+          toast("O compactador não carregou. Recarregue a página.");
+          return;
+        }
+        const z = new JSZip();
+        list.forEach((n) =>
+          z.file(
+            `NFSe-${n.numero}${n.status === "cancelada" ? "-cancelada" : ""}.xml`,
+            xmlNota(n),
+          ),
+        );
+        baixar(nome, await z.generateAsync({ type: "blob" }));
+      }
 
-/* --- receber --- */
-V.receber=()=>{
-  const f=F.receber;
-  const list=S.receber.filter(t=>f==='todos'||(f==='abertos'?!t.recebidoEm:stReceber(t)===f)).sort((a,b)=>a.venc.localeCompare(b.venc));
-  const tot=list.reduce((a,t)=>a+t.valor,0);
-  return`
+      /* --- receber --- */
+      V.receber = () => {
+        const f = F.receber;
+        const list = S.receber
+          .filter(
+            (t) =>
+              f === "todos" ||
+              (f === "abertos" ? !t.recebidoEm : stReceber(t) === f),
+          )
+          .sort((a, b) => a.venc.localeCompare(b.venc));
+        const tot = list.reduce((a, t) => a + t.valor, 0);
+        return `
   <div class="spread"><h1>Contas a receber</h1>
   <div class="filters"><div class="field"><label for="fr">Mostrar</label><select id="fr" data-filter="receber">
-    ${[['abertos','Em aberto'],['vencido','Vencidos'],['recebido','Recebidos'],['todos','Todos']].map(([v,l])=>`<option value="${v}" ${f===v?'selected':''}>${l}</option>`).join('')}
+    ${[
+      ["abertos", "Em aberto"],
+      ["vencido", "Vencidos"],
+      ["recebido", "Recebidos"],
+      ["todos", "Todos"],
+    ]
+      .map(
+        ([v, l]) =>
+          `<option value="${v}" ${f === v ? "selected" : ""}>${l}</option>`,
+      )
+      .join("")}
   </select></div></div></div>
-  ${list.length?`<div class="tablewrap"><table>
-    <thead><tr><th>Vencimento</th><th>Cliente</th><th>Origem</th><th class="num">Valor</th><th>Situação</th>${isEmp()?'<th></th>':''}</tr></thead>
-    <tbody>${list.map(t=>{const s=stReceber(t);return`<tr>
+  ${
+    list.length
+      ? `<div class="tablewrap"><table>
+    <thead><tr><th>Vencimento</th><th>Cliente</th><th>Origem</th><th class="num">Valor</th><th>Situação</th>${isEmp() ? "<th></th>" : ""}</tr></thead>
+    <tbody>${list
+      .map((t) => {
+        const s = stReceber(t);
+        return `<tr>
       <td>${fmtDate(t.venc)}</td><td>${esc(t.cliente)}</td><td>${esc(t.descricao)}</td><td class="num">${brl(t.valor)}</td>
-      <td>${chipFin(s)}${t.recebidoEm?`<span class="sub">em ${fmtDate(t.recebidoEm)}</span>`:''}</td>
-      ${isEmp()?`<td><div class="actions">${t.recebidoEm?`<button class="link" data-action="desfazRec" data-id="${t.id}">Desfazer</button>`:`<button class="link" data-action="receber" data-id="${t.id}">Marcar recebido</button>`}</div></td>`:''}
-    </tr>`}).join('')}</tbody>
-    <tfoot><tr><td colspan="3">${list.length} título${list.length!==1?'s':''}</td><td class="num">${brl(tot)}</td><td colspan="${isEmp()?2:1}"></td></tr></tfoot>
-  </table></div>`:'<div class="panel"><p class="empty" style="margin:0">Nenhum título nesse filtro.</p></div>'}`;
-};
+      <td>${chipFin(s)}${t.recebidoEm ? `<span class="sub">em ${fmtDate(t.recebidoEm)}</span>` : ""}</td>
+      ${isEmp() ? `<td><div class="actions">${t.recebidoEm ? `<button class="link" data-action="desfazRec" data-id="${t.id}">Desfazer</button>` : `<button class="link" data-action="receber" data-id="${t.id}">Marcar recebido</button>`}</div></td>` : ""}
+    </tr>`;
+      })
+      .join("")}</tbody>
+    <tfoot><tr><td colspan="3">${list.length} título${list.length !== 1 ? "s" : ""}</td><td class="num">${brl(tot)}</td><td colspan="${isEmp() ? 2 : 1}"></td></tr></tfoot>
+  </table></div>`
+      : '<div class="panel"><p class="empty" style="margin:0">Nenhum título nesse filtro.</p></div>'
+  }`;
+      };
 
-/* --- pagar --- */
-const CATS=['Aluguel','Fornecedores','Impostos','Folha de pagamento','Serviços e assinaturas','Outros'];
-V.pagar=()=>{
-  const f=F.pagar;
-  const list=S.pagar.filter(t=>f==='todos'||(f==='abertos'?!t.pagoEm:stPagar(t)===f)).sort((a,b)=>a.venc.localeCompare(b.venc));
-  const tot=list.reduce((a,t)=>a+t.valor,0);
-  return`
+      /* --- pagar --- */
+      const CATS = [
+        "Aluguel",
+        "Fornecedores",
+        "Impostos",
+        "Folha de pagamento",
+        "Serviços e assinaturas",
+        "Outros",
+      ];
+      V.pagar = () => {
+        const f = F.pagar;
+        const list = S.pagar
+          .filter(
+            (t) =>
+              f === "todos" || (f === "abertos" ? !t.pagoEm : stPagar(t) === f),
+          )
+          .sort((a, b) => a.venc.localeCompare(b.venc));
+        const tot = list.reduce((a, t) => a + t.valor, 0);
+        return `
   <h1>Contas a pagar</h1>
   
-  ${isEmp()?`<div class="panel" style="margin-bottom:18px"><h2>Nova conta</h2>
+  ${
+    isEmp()
+      ? `<div class="panel" style="margin-bottom:18px"><h2>Nova conta</h2>
     <div class="form">
       <div class="field"><label for="pDesc">Descrição</label><input id="pDesc" placeholder="Ex.: Aluguel da sala"></div>
       <div class="field"><label for="pForn">Fornecedor</label><input id="pForn"></div>
-      <div class="field"><label for="pCat">Categoria</label><select id="pCat">${CATS.map(c=>`<option>${c}</option>`).join('')}</select></div>
+      <div class="field"><label for="pCat">Categoria</label><select id="pCat">${CATS.map((c) => `<option>${c}</option>`).join("")}</select></div>
       <div class="field"><label for="pVal">Valor (R$)</label><input id="pVal" inputmode="decimal" placeholder="0,00"></div>
       <div class="field"><label for="pVenc">Vencimento</label><input id="pVenc" type="date" value="${todayISO()}"></div>
       <label class="check"><input type="checkbox" id="pRec"> Repetir todo mês</label>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn primary" data-action="addPagar">Adicionar conta</button></div>
-  </div>`:''}
+  </div>`
+      : ""
+  }
   <div class="spread" style="margin-bottom:12px"><span></span><div class="filters"><div class="field"><label for="fp">Mostrar</label><select id="fp" data-filter="pagar">
-    ${[['abertos','Em aberto'],['vencido','Vencidas'],['pago','Pagas'],['todos','Todas']].map(([v,l])=>`<option value="${v}" ${f===v?'selected':''}>${l}</option>`).join('')}
+    ${[
+      ["abertos", "Em aberto"],
+      ["vencido", "Vencidas"],
+      ["pago", "Pagas"],
+      ["todos", "Todas"],
+    ]
+      .map(
+        ([v, l]) =>
+          `<option value="${v}" ${f === v ? "selected" : ""}>${l}</option>`,
+      )
+      .join("")}
   </select></div></div></div>
-  ${list.length?`<div class="tablewrap"><table>
-    <thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th class="num">Valor</th><th>Situação</th>${isEmp()?'<th></th>':''}</tr></thead>
-    <tbody>${list.map(t=>{const s=stPagar(t);return`<tr>
-      <td>${fmtDate(t.venc)}</td><td>${esc(t.descricao)}<span class="sub">${esc(t.fornecedor||'')}${t.recorrente?(t.fornecedor?', ':'')+'mensal':''}</span></td><td>${esc(t.categoria)}</td><td class="num">${brl(t.valor)}</td>
-      <td>${chipFin(s)}${t.pagoEm?`<span class="sub">em ${fmtDate(t.pagoEm)}</span>`:''}</td>
-      ${isEmp()?`<td><div class="actions">${t.pagoEm?`<button class="link" data-action="desfazPag" data-id="${t.id}">Desfazer</button>`:`<button class="link" data-action="pagar" data-id="${t.id}">Marcar paga</button>`}<button class="link bad" data-action="delPagar" data-id="${t.id}">Excluir</button></div></td>`:''}
-    </tr>`}).join('')}</tbody>
-    <tfoot><tr><td colspan="3">${list.length} conta${list.length!==1?'s':''}</td><td class="num">${brl(tot)}</td><td colspan="${isEmp()?2:1}"></td></tr></tfoot>
-  </table></div>`:'<div class="panel"><p class="empty" style="margin:0">Nenhuma conta nesse filtro.</p></div>'}`;
-};
-function addPagar(){
-  const g=id=>document.getElementById(id);
-  const t={id:uid(),descricao:g('pDesc').value.trim(),fornecedor:g('pForn').value.trim(),categoria:g('pCat').value,valor:Math.round(parseValor(g('pVal').value)*100)/100,venc:g('pVenc').value,recorrente:g('pRec').checked,pagoEm:null};
-  if(!t.descricao){toast('Informe a descrição da conta.');g('pDesc').focus();return}
-  if(!(t.valor>0)){toast('Informe um valor maior que zero.');g('pVal').focus();return}
-  if(!t.venc){toast('Informe o vencimento.');return}
-  S.pagar.push(t);save();render();toast('Conta adicionada');
-}
-function marcarPaga(id){
-  const t=S.pagar.find(x=>x.id===id);if(!t)return;t.pagoEm=todayISO();
-  if(t.recorrente&&!t.proxGerada){t.proxGerada=true;S.pagar.push({...t,id:uid(),venc:addMonths(t.venc,1),pagoEm:null,proxGerada:false});toast(`Paga. Próxima criada para ${fmtDate(addMonths(t.venc,1))}`)}
-  else toast('Conta marcada como paga');
-  save();render();
-}
+  ${
+    list.length
+      ? `<div class="tablewrap"><table>
+    <thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th class="num">Valor</th><th>Situação</th>${isEmp() ? "<th></th>" : ""}</tr></thead>
+    <tbody>${list
+      .map((t) => {
+        const s = stPagar(t);
+        return `<tr>
+      <td>${fmtDate(t.venc)}</td><td>${esc(t.descricao)}<span class="sub">${esc(t.fornecedor || "")}${t.recorrente ? (t.fornecedor ? ", " : "") + "mensal" : ""}</span></td><td>${esc(t.categoria)}</td><td class="num">${brl(t.valor)}</td>
+      <td>${chipFin(s)}${t.pagoEm ? `<span class="sub">em ${fmtDate(t.pagoEm)}</span>` : ""}</td>
+      ${isEmp() ? `<td><div class="actions">${t.pagoEm ? `<button class="link" data-action="desfazPag" data-id="${t.id}">Desfazer</button>` : `<button class="link" data-action="pagar" data-id="${t.id}">Marcar paga</button>`}<button class="link bad" data-action="delPagar" data-id="${t.id}">Excluir</button></div></td>` : ""}
+    </tr>`;
+      })
+      .join("")}</tbody>
+    <tfoot><tr><td colspan="3">${list.length} conta${list.length !== 1 ? "s" : ""}</td><td class="num">${brl(tot)}</td><td colspan="${isEmp() ? 2 : 1}"></td></tr></tfoot>
+  </table></div>`
+      : '<div class="panel"><p class="empty" style="margin:0">Nenhuma conta nesse filtro.</p></div>'
+  }`;
+      };
+      function addPagar() {
+        const g = (id) => document.getElementById(id);
+        const t = {
+          id: uid(),
+          descricao: g("pDesc").value.trim(),
+          fornecedor: g("pForn").value.trim(),
+          categoria: g("pCat").value,
+          valor: Math.round(parseValor(g("pVal").value) * 100) / 100,
+          venc: g("pVenc").value,
+          recorrente: g("pRec").checked,
+          pagoEm: null,
+        };
+        if (!t.descricao) {
+          toast("Informe a descrição da conta.");
+          g("pDesc").focus();
+          return;
+        }
+        if (!(t.valor > 0)) {
+          toast("Informe um valor maior que zero.");
+          g("pVal").focus();
+          return;
+        }
+        if (!t.venc) {
+          toast("Informe o vencimento.");
+          return;
+        }
+        S.pagar.push(t);
+        save();
+        render();
+        toast("Conta adicionada");
+      }
+      function marcarPaga(id) {
+        const t = S.pagar.find((x) => x.id === id);
+        if (!t) return;
+        t.pagoEm = todayISO();
+        if (t.recorrente && !t.proxGerada) {
+          t.proxGerada = true;
+          S.pagar.push({
+            ...t,
+            id: uid(),
+            venc: addMonths(t.venc, 1),
+            pagoEm: null,
+            proxGerada: false,
+          });
+          toast(`Paga. Próxima criada para ${fmtDate(addMonths(t.venc, 1))}`);
+        } else toast("Conta marcada como paga");
+        save();
+        render();
+      }
 
-/* --- exportar --- */
-V.exportar=()=>{
-  const ym=F.expMes;
-  const notas=S.notas.filter(n=>n.competencia.slice(0,7)===ym);
-  const aut=notas.filter(n=>n.status==='autorizada');
-  const rec=S.receber.filter(t=>(t.recebidoEm||'').slice(0,7)===ym);
-  const pag=S.pagar.filter(t=>(t.pagoEm||'').slice(0,7)===ym);
-  return`
+      /* --- exportar --- */
+      V.exportar = () => {
+        const ym = F.expMes;
+        const notas = S.notas.filter((n) => n.competencia.slice(0, 7) === ym);
+        const aut = notas.filter((n) => n.status === "autorizada");
+        const rec = S.receber.filter(
+          (t) => (t.recebidoEm || "").slice(0, 7) === ym,
+        );
+        const pag = S.pagar.filter((t) => (t.pagoEm || "").slice(0, 7) === ym);
+        return `
   <h1>Arquivos do mês</h1>
   <div class="filters" style="margin-bottom:18px"><div class="field"><label for="fe">Competência</label><input type="month" id="fe" data-filter="expMes" value="${ym}"></div></div>
   <div class="summary">
     <div><span>Notas autorizadas</span><strong>${aut.length}</strong></div>
-    <div><span>Faturamento</span><strong>${brl(aut.reduce((a,n)=>a+n.valor,0))}</strong></div>
-    <div><span>Recebido no mês</span><strong>${brl(rec.reduce((a,t)=>a+t.valor,0))}</strong></div>
-    <div><span>Pago no mês</span><strong>${brl(pag.reduce((a,t)=>a+t.valor,0))}</strong></div>
+    <div><span>Faturamento</span><strong>${brl(aut.reduce((a, n) => a + n.valor, 0))}</strong></div>
+    <div><span>Recebido no mês</span><strong>${brl(rec.reduce((a, t) => a + t.valor, 0))}</strong></div>
+    <div><span>Pago no mês</span><strong>${brl(pag.reduce((a, t) => a + t.valor, 0))}</strong></div>
   </div>
   <div class="tablewrap"><table><tbody>
-    <tr><td><b>XMLs das notas</b><span class="sub">${notas.length} arquivo${notas.length!==1?'s':''}, incluindo canceladas</span></td><td class="num"><button class="btn small" data-action="zipExp" ${notas.length?'':'disabled'}>Baixar .zip</button></td></tr>
-    <tr><td><b>Relatório de notas</b><span class="sub">Número, datas, tomador, valor, situação e chave</span></td><td class="num"><button class="btn small" data-action="csvNotas" ${notas.length?'':'disabled'}>Baixar .csv</button></td></tr>
-    <tr><td><b>Movimento financeiro</b><span class="sub">Recebimentos e pagamentos realizados no mês</span></td><td class="num"><button class="btn small" data-action="csvFin" ${(rec.length||pag.length)?'':'disabled'}>Baixar .csv</button></td></tr>
+    <tr><td><b>XMLs das notas</b><span class="sub">${notas.length} arquivo${notas.length !== 1 ? "s" : ""}, incluindo canceladas</span></td><td class="num"><button class="btn small" data-action="zipExp" ${notas.length ? "" : "disabled"}>Baixar .zip</button></td></tr>
+    <tr><td><b>Relatório de notas</b><span class="sub">Número, datas, tomador, valor, situação e chave</span></td><td class="num"><button class="btn small" data-action="csvNotas" ${notas.length ? "" : "disabled"}>Baixar .csv</button></td></tr>
+    <tr><td><b>Movimento financeiro</b><span class="sub">Recebimentos e pagamentos realizados no mês</span></td><td class="num"><button class="btn small" data-action="csvFin" ${rec.length || pag.length ? "" : "disabled"}>Baixar .csv</button></td></tr>
   </tbody></table></div>`;
-};
-function csv(rows){return '\ufeff'+rows.map(r=>r.map(c=>{const s=String(c??'');return /[;"\n]/.test(s)?`"${s.replace(/"/g,'""')}"`:s}).join(';')).join('\r\n')}
-const dec = v => v.toFixed(2).replace('.',',');
-function csvNotas(){
-  const ym=F.expMes;const notas=S.notas.filter(n=>n.competencia.slice(0,7)===ym).sort((a,b)=>a.numero-b.numero);
-  baixar(`notas-${ym}.csv`,csv([['Número','Emissão','Competência','Tomador','CPF/CNPJ','Código serviço','Descrição','Valor','Situação','Chave de acesso'],...notas.map(n=>[n.numero,fmtDateTime(n.dhEmi),fmtDate(n.competencia),n.tomador.nome,fmtDoc(n.tomador.doc),fmtServ(n.cServ),n.descricao,dec(n.valor),n.status==='autorizada'?'Autorizada':'Cancelada',n.chave])]));
-}
-function csvFin(){
-  const ym=F.expMes;
-  const rec=S.receber.filter(t=>(t.recebidoEm||'').slice(0,7)===ym).map(t=>['Recebimento',fmtDate(t.recebidoEm),fmtDate(t.venc),t.cliente,t.descricao,'',dec(t.valor)]);
-  const pag=S.pagar.filter(t=>(t.pagoEm||'').slice(0,7)===ym).map(t=>['Pagamento',fmtDate(t.pagoEm),fmtDate(t.venc),t.fornecedor,t.descricao,t.categoria,dec(-t.valor)]);
-  baixar(`financeiro-${ym}.csv`,csv([['Tipo','Data','Vencimento','Cliente/Fornecedor','Descrição','Categoria','Valor'],...rec,...pag]));
-}
+      };
+      function csv(rows) {
+        return (
+          "\ufeff" +
+          rows
+            .map((r) =>
+              r
+                .map((c) => {
+                  const s = String(c ?? "");
+                  return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+                })
+                .join(";"),
+            )
+            .join("\r\n")
+        );
+      }
+      const dec = (v) => v.toFixed(2).replace(".", ",");
+      function csvNotas() {
+        const ym = F.expMes;
+        const notas = S.notas
+          .filter((n) => n.competencia.slice(0, 7) === ym)
+          .sort((a, b) => a.numero - b.numero);
+        baixar(
+          `notas-${ym}.csv`,
+          csv([
+            [
+              "Número",
+              "Emissão",
+              "Competência",
+              "Tomador",
+              "CPF/CNPJ",
+              "Código serviço",
+              "Descrição",
+              "Valor",
+              "Situação",
+              "Chave de acesso",
+            ],
+            ...notas.map((n) => [
+              n.numero,
+              fmtDateTime(n.dhEmi),
+              fmtDate(n.competencia),
+              n.tomador.nome,
+              fmtDoc(n.tomador.doc),
+              fmtServ(n.cServ),
+              n.descricao,
+              dec(n.valor),
+              n.status === "autorizada" ? "Autorizada" : "Cancelada",
+              n.chave,
+            ]),
+          ]),
+        );
+      }
+      function csvFin() {
+        const ym = F.expMes;
+        const rec = S.receber
+          .filter((t) => (t.recebidoEm || "").slice(0, 7) === ym)
+          .map((t) => [
+            "Recebimento",
+            fmtDate(t.recebidoEm),
+            fmtDate(t.venc),
+            t.cliente,
+            t.descricao,
+            "",
+            dec(t.valor),
+          ]);
+        const pag = S.pagar
+          .filter((t) => (t.pagoEm || "").slice(0, 7) === ym)
+          .map((t) => [
+            "Pagamento",
+            fmtDate(t.pagoEm),
+            fmtDate(t.venc),
+            t.fornecedor,
+            t.descricao,
+            t.categoria,
+            dec(-t.valor),
+          ]);
+        baixar(
+          `financeiro-${ym}.csv`,
+          csv([
+            [
+              "Tipo",
+              "Data",
+              "Vencimento",
+              "Cliente/Fornecedor",
+              "Descrição",
+              "Categoria",
+              "Valor",
+            ],
+            ...rec,
+            ...pag,
+          ]),
+        );
+      }
 
-/* --- usuários --- */
-V.usuarios=()=>`
+      /* --- usuários --- */
+      V.usuarios = () => `
   <h1>Usuários</h1>
   <p class="lead">O perfil contador consulta notas, financeiro e arquivos, sem emitir nem alterar.</p>
   <div class="tablewrap" style="margin-bottom:20px"><table>
     <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th></th></tr></thead>
-    <tbody>${S.users.map(u=>`<tr>
-      <td><b>${esc(u.nome)}</b>${u.id===me.id?'<span class="sub">Você</span>':''}</td><td>${esc(u.email)}</td>
-      <td>${u.perfil==='empresa'?'<span class="chip brand">Empresa</span>':'<span class="chip neutral">Contador</span>'}</td>
-      <td><div class="actions">${u.id!==me.id?`<button class="link bad" data-action="delUser" data-id="${u.id}">Remover acesso</button>`:''}</div></td>
-    </tr>`).join('')}</tbody>
+    <tbody>${S.users
+      .map(
+        (u) => `<tr>
+      <td><b>${esc(u.nome)}</b>${u.id === me.id ? '<span class="sub">Você</span>' : ""}</td><td>${esc(u.email)}</td>
+      <td>${u.perfil === "empresa" ? '<span class="chip brand">Empresa</span>' : '<span class="chip neutral">Contador</span>'}</td>
+      <td><div class="actions">${u.id !== me.id ? `<button class="link bad" data-action="delUser" data-id="${u.id}">Remover acesso</button>` : ""}</div></td>
+    </tr>`,
+      )
+      .join("")}</tbody>
   </table></div>
   <div class="panel"><h2>Convidar usuário</h2>
     <div class="form">
@@ -906,36 +2744,62 @@ V.usuarios=()=>`
     </div>
     <div class="row" style="margin-top:16px"><button class="btn primary" data-action="addUser">Adicionar usuário</button></div>
   </div>`;
-async function addUser(){
-  const g=id=>document.getElementById(id).value.trim();
-  const nome=g('uNome'),email=g('uEmail').toLowerCase(),perfil=document.getElementById('uPerfil').value,senha=document.getElementById('uSenha').value;
-  if(!nome){toast('Informe o nome.');return}
-  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){toast('Informe um e-mail válido.');return}
-  if(S.users.some(u=>u.email===email)){toast('Já existe um usuário com esse e-mail.');return}
-  if(senha.length<8){toast('A senha precisa ter pelo menos 8 caracteres.');return}
-  S.users.push(await novoUsuario(nome,email,perfil,senha));save();render();toast(`${nome} adicionado`);
-}
+      async function addUser() {
+        const g = (id) => document.getElementById(id).value.trim();
+        const nome = g("uNome"),
+          email = g("uEmail").toLowerCase(),
+          perfil = document.getElementById("uPerfil").value,
+          senha = document.getElementById("uSenha").value;
+        if (!nome) {
+          toast("Informe o nome.");
+          return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+          toast("Informe um e-mail válido.");
+          return;
+        }
+        if (S.users.some((u) => u.email === email)) {
+          toast("Já existe um usuário com esse e-mail.");
+          return;
+        }
+        if (senha.length < 8) {
+          toast("A senha precisa ter pelo menos 8 caracteres.");
+          return;
+        }
+        S.users.push(await novoUsuario(nome, email, perfil, senha));
+        save();
+        render();
+        toast(`${nome} adicionado`);
+      }
 
-/* --- empresa e certificado --- */
-V.config=()=>{const e=S.empresa,c=e.cert,st=certStatus();return`
+      /* --- empresa e certificado --- */
+      V.config = () => {
+        const e = S.empresa,
+          c = e.cert,
+          st = certStatus();
+        return `
   <h1>Empresa e certificado</h1>
   
   <div class="panel" style="margin-bottom:20px">
     <div class="cert">
-      <div class="seal ${st.k==='ok'?'ok':''}">${icon('cert')}</div>
+      <div class="seal ${st.k === "ok" ? "ok" : ""}">${icon("cert")}</div>
       <div>
         <h2 style="margin-bottom:4px">Certificado digital e-CNPJ A1</h2>
-        ${c?`<div class="row" style="gap:8px">${st.k==='ok'?`<span class="chip ok">Válido por mais ${st.d} dias</span>`:st.k==='vencendo'?`<span class="chip warn">Vence em ${st.d} dia${st.d!==1?'s':''}</span>`:'<span class="chip bad">Vencido</span>'}<span class="muted" style="font-size:13px">Verificado em ${fmtDateTime(c.verificadoEm)}</span></div>
+        ${
+          c
+            ? `<div class="row" style="gap:8px">${st.k === "ok" ? `<span class="chip ok">Válido por mais ${st.d} dias</span>` : st.k === "vencendo" ? `<span class="chip warn">Vence em ${st.d} dia${st.d !== 1 ? "s" : ""}</span>` : '<span class="chip bad">Vencido</span>'}<span class="muted" style="font-size:13px">Verificado em ${fmtDateTime(c.verificadoEm)}</span></div>
           <div class="kv">
             <div><span>Titular</span>${esc(c.titular)}</div>
             <div><span>CNPJ</span>${fmtDoc(c.cnpj)}</div>
             <div><span>Validade</span>${fmtDate(c.validoDe)} a ${fmtDate(c.validoAte)}</div>
-            <div><span>Autoridade certificadora</span>${esc(c.emissor)||'—'}</div>
-          </div>`:'<p class="muted" style="margin:0">Nenhum certificado verificado ainda.</p>'}
+            <div><span>Autoridade certificadora</span>${esc(c.emissor) || "—"}</div>
+          </div>`
+            : '<p class="muted" style="margin:0">Nenhum certificado verificado ainda.</p>'
+        }
         <div class="form" style="margin-top:18px">
           <div class="field"><label for="certFile">Arquivo .pfx ou .p12</label><input id="certFile" type="file" accept=".pfx,.p12"></div>
           <div class="field"><label for="certSenha">Senha do certificado</label><input id="certSenha" type="password" autocomplete="off"></div>
-          <div class="field"><button class="btn primary" data-action="verCert">${c?'Substituir certificado':'Verificar certificado'}</button></div>
+          <div class="field"><button class="btn primary" data-action="verCert">${c ? "Substituir certificado" : "Verificar certificado"}</button></div>
         </div>
         <p class="loginerr" id="certErr" role="alert" style="margin-top:10px"></p>
         <p class="muted" style="font-size:13px;margin:0">A leitura acontece só neste navegador. O arquivo e a senha não são guardados, apenas titular, CNPJ e validade. Na versão em produção, o certificado fica criptografado no servidor, que assina e envia as notas.</p>
@@ -950,69 +2814,227 @@ V.config=()=>{const e=S.empresa,c=e.cert,st=certStatus();return`
       <div class="field"><label for="cIm">Inscrição municipal</label><input id="cIm" value="${esc(e.im)}"></div>
       <div class="field"><label>Município</label><input value="Jaraguá do Sul/SC (IBGE 4208906)" disabled></div>
       <div class="field"><label>Regime</label><input value="Simples Nacional, ME/EPP" disabled></div>
-      <div class="field"><label for="cServ">Código de serviço padrão</label><input id="cServ" value="${esc(fmtServ(e.cServPadrao)==='—'?'':fmtServ(e.cServPadrao))}" placeholder="Ex.: 01.07.01"></div>
+      <div class="field"><label for="cServ">Código de serviço padrão</label><input id="cServ" value="${esc(fmtServ(e.cServPadrao) === "—" ? "" : fmtServ(e.cServPadrao))}" placeholder="Ex.: 01.07.01"></div>
       <div class="field"><label for="cVenc">Vencimento padrão (dias)</label><input id="cVenc" type="number" min="0" value="${+e.vencDias}"></div>
       <div class="field"><label for="cSerie">Série da DPS</label><input id="cSerie" value="${esc(e.serie)}"></div>
       <div class="field"><label for="cDps">Próximo nº da DPS</label><input id="cDps" type="number" min="1" value="${e.proxDPS}"></div>
     </div>
     <div class="row"><button class="btn primary" data-action="salvarCfg">Salvar dados</button></div>
   </div>
-  <div class="panel" style="margin-top:20px"><h2>Dados de teste</h2><p class="muted" style="margin:0 0 14px">Apaga notas, títulos, contas e lotes deste navegador. Usuários e dados da empresa continuam.</p><button class="btn danger" data-action="resetAsk">Apagar movimentações</button></div>`};
-function salvarCfg(){
-  const g=id=>document.getElementById(id).value.trim();
-  const cnpj=digits(g('cCnpj'));
-  if(!validCNPJ(cnpj)){toast('CNPJ inválido.');return}
-  const sv=digits(g('cServ'));if(sv&&sv.length!==6){toast('O código de serviço precisa ter 6 dígitos.');return}
-  if(S.empresa.cert&&cnpj!==S.empresa.cert.cnpj){S.empresa.cert=null;toast('CNPJ alterado. Verifique o certificado de novo.')}else toast('Dados salvos');
-  Object.assign(S.empresa,{razao:g('cRaz')||'Sua empresa',cnpj,im:g('cIm'),cServPadrao:sv,vencDias:Math.max(0,parseInt(g('cVenc'))||0),serie:g('cSerie')||'900',proxDPS:Math.max(1,parseInt(g('cDps'))||1)});
-  save();render();
-}
+  <div class="panel" style="margin-top:20px"><h2>Dados de teste</h2><p class="muted" style="margin:0 0 14px">Apaga notas, títulos, contas e lotes deste navegador. Usuários e dados da empresa continuam.</p><button class="btn danger" data-action="resetAsk">Apagar movimentações</button></div>`;
+      };
+      function salvarCfg() {
+        const g = (id) => document.getElementById(id).value.trim();
+        const cnpj = digits(g("cCnpj"));
+        if (!validCNPJ(cnpj)) {
+          toast("CNPJ inválido.");
+          return;
+        }
+        const sv = digits(g("cServ"));
+        if (sv && sv.length !== 6) {
+          toast("O código de serviço precisa ter 6 dígitos.");
+          return;
+        }
+        if (S.empresa.cert && cnpj !== S.empresa.cert.cnpj) {
+          S.empresa.cert = null;
+          toast("CNPJ alterado. Verifique o certificado de novo.");
+        } else toast("Dados salvos");
+        Object.assign(S.empresa, {
+          razao: g("cRaz") || "Sua empresa",
+          cnpj,
+          im: g("cIm"),
+          cServPadrao: sv,
+          vencDias: Math.max(0, parseInt(g("cVenc")) || 0),
+          serie: g("cSerie") || "900",
+          proxDPS: Math.max(1, parseInt(g("cDps")) || 1),
+        });
+        save();
+        render();
+      }
 
-/* ---------- eventos ---------- */
-document.addEventListener('click',e=>{
-  const a=e.target.closest('[data-action]');if(!a)return;
-  const id=a.dataset.id;
-  const soEmp=['modelo','exemplo','emitir','cancelar','confirmaCancel','receber','desfazRec','addPagar','pagar','desfazPag','delPagar','salvarCfg','resetAsk','reset','addUser','delUser','verCert'];
-  if(soEmp.includes(a.dataset.action)&&!isEmp())return;
-  switch(a.dataset.action){
-    case'demoLogin':document.getElementById('lgEmail').value=a.dataset.email;document.getElementById('lgSenha').value='demo1234';document.getElementById('loginForm').requestSubmit();break;
-    case'logout':sair();break;
-    case'nav':closeModal();go(a.dataset.view);break;
-    case'modelo':baixarModelo();break;
-    case'exemplo':exemplo();break;
-    case'trocar':batch=null;render();break;
-    case'emitir':emitirLote();break;
-    case'ver':verNota(id);break;
-    case'xml':{const n=S.notas.find(x=>x.id===id);if(n)zipNotas([n],`NFSe-${n.numero}.zip`);break}
-    case'cancelar':pedirCancelamento(id);break;
-    case'confirmaCancel':confirmaCancel(id);break;
-    case'fechar':closeModal();break;
-    case'zipMes':zipNotas(notasFiltradas(F.notasMes,F.notasStatus),`NFSe-xml-${F.notasMes}.zip`);break;
-    case'zipExp':zipNotas(S.notas.filter(n=>n.competencia.slice(0,7)===F.expMes),`NFSe-xml-${F.expMes}.zip`);break;
-    case'csvNotas':csvNotas();break;
-    case'csvFin':csvFin();break;
-    case'receber':{const t=S.receber.find(x=>x.id===id);t.recebidoEm=todayISO();save();render();toast('Recebimento registrado');break}
-    case'desfazRec':{const t=S.receber.find(x=>x.id===id);t.recebidoEm=null;save();render();break}
-    case'addPagar':addPagar();break;
-    case'pagar':marcarPaga(id);break;
-    case'desfazPag':{const t=S.pagar.find(x=>x.id===id);t.pagoEm=null;save();render();break}
-    case'delPagar':S.pagar=S.pagar.filter(x=>x.id!==id);save();render();toast('Conta excluída');break;
-    case'salvarCfg':salvarCfg();break;
-    case'verCert':verificarCert();break;
-    case'addUser':addUser();break;
-    case'delUser':{const u=S.users.find(x=>x.id===id);if(!u||u.id===me.id)break;openModal(`<h2>Remover acesso de ${esc(u.nome)}?</h2><p class="muted">${esc(u.email)} não vai mais conseguir entrar no sistema.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="confirmaDelUser" data-id="${u.id}">Remover acesso</button></div>`);break}
-    case'confirmaDelUser':if(!isEmp())break;S.users=S.users.filter(x=>x.id!==id||x.id===me.id);save();closeModal();render();toast('Acesso removido');break;
-    case'resetAsk':openModal(`<h2>Apagar movimentações?</h2><p class="muted">Notas, contas a receber, contas a pagar e lotes deste navegador serão apagados. Não dá para desfazer.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="reset">Apagar movimentações</button></div>`);break;
-    case'reset':Object.assign(S,{notas:[],receber:[],pagar:[],lotes:[]});S.empresa.proxDPS=1;S.empresa.proxNFSe=1;batch=null;save();closeModal();go('painel');toast('Movimentações apagadas');break;
-  }
-});
-document.addEventListener('change',e=>{
-  const t=e.target;
-  if(t.id==='file'&&t.files[0]){if(isEmp())lerArquivo(t.files[0]);return}
-  if(t.dataset.filter){if(t.value||t.type!=='month'){F[t.dataset.filter]=t.value;render()}}
-});
+      /* ---------- eventos ---------- */
+      document.addEventListener("click", (e) => {
+        const a = e.target.closest("[data-action]");
+        if (!a) return;
+        const id = a.dataset.id;
+        const soEmp = [
+          "modelo",
+          "exemplo",
+          "emitir",
+          "cancelar",
+          "confirmaCancel",
+          "receber",
+          "desfazRec",
+          "addPagar",
+          "pagar",
+          "desfazPag",
+          "delPagar",
+          "salvarCfg",
+          "resetAsk",
+          "reset",
+          "addUser",
+          "delUser",
+          "verCert",
+        ];
+        if (soEmp.includes(a.dataset.action) && !isEmp()) return;
+        switch (a.dataset.action) {
+          case "demoLogin":
+            document.getElementById("lgEmail").value = a.dataset.email;
+            document.getElementById("lgSenha").value = "demo1234";
+            document.getElementById("loginForm").requestSubmit();
+            break;
+          case "logout":
+            sair();
+            break;
+          case "nav":
+            closeModal();
+            go(a.dataset.view);
+            break;
+          case "modelo":
+            baixarModelo();
+            break;
+          case "exemplo":
+            exemplo();
+            break;
+          case "trocar":
+            batch = null;
+            render();
+            break;
+          case "emitir":
+            emitirLote();
+            break;
+          case "ver":
+            verNota(id);
+            break;
+          case "xml": {
+            const n = S.notas.find((x) => x.id === id);
+            if (n) zipNotas([n], `NFSe-${n.numero}.zip`);
+            break;
+          }
+          case "cancelar":
+            pedirCancelamento(id);
+            break;
+          case "confirmaCancel":
+            confirmaCancel(id);
+            break;
+          case "fechar":
+            closeModal();
+            break;
+          case "zipMes":
+            zipNotas(
+              notasFiltradas(F.notasMes, F.notasStatus),
+              `NFSe-xml-${F.notasMes}.zip`,
+            );
+            break;
+          case "zipExp":
+            zipNotas(
+              S.notas.filter((n) => n.competencia.slice(0, 7) === F.expMes),
+              `NFSe-xml-${F.expMes}.zip`,
+            );
+            break;
+          case "csvNotas":
+            csvNotas();
+            break;
+          case "csvFin":
+            csvFin();
+            break;
+          case "receber": {
+            const t = S.receber.find((x) => x.id === id);
+            t.recebidoEm = todayISO();
+            save();
+            render();
+            toast("Recebimento registrado");
+            break;
+          }
+          case "desfazRec": {
+            const t = S.receber.find((x) => x.id === id);
+            t.recebidoEm = null;
+            save();
+            render();
+            break;
+          }
+          case "addPagar":
+            addPagar();
+            break;
+          case "pagar":
+            marcarPaga(id);
+            break;
+          case "desfazPag": {
+            const t = S.pagar.find((x) => x.id === id);
+            t.pagoEm = null;
+            save();
+            render();
+            break;
+          }
+          case "delPagar":
+            S.pagar = S.pagar.filter((x) => x.id !== id);
+            save();
+            render();
+            toast("Conta excluída");
+            break;
+          case "salvarCfg":
+            salvarCfg();
+            break;
+          case "verCert":
+            verificarCert();
+            break;
+          case "addUser":
+            addUser();
+            break;
+          case "delUser": {
+            const u = S.users.find((x) => x.id === id);
+            if (!u || u.id === me.id) break;
+            openModal(
+              `<h2>Remover acesso de ${esc(u.nome)}?</h2><p class="muted">${esc(u.email)} não vai mais conseguir entrar no sistema.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="confirmaDelUser" data-id="${u.id}">Remover acesso</button></div>`,
+            );
+            break;
+          }
+          case "confirmaDelUser":
+            if (!isEmp()) break;
+            S.users = S.users.filter((x) => x.id !== id || x.id === me.id);
+            save();
+            closeModal();
+            render();
+            toast("Acesso removido");
+            break;
+          case "resetAsk":
+            openModal(
+              `<h2>Apagar movimentações?</h2><p class="muted">Notas, contas a receber, contas a pagar e lotes deste navegador serão apagados. Não dá para desfazer.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="reset">Apagar movimentações</button></div>`,
+            );
+            break;
+          case "reset":
+            Object.assign(S, { notas: [], receber: [], pagar: [], lotes: [] });
+            S.empresa.proxDPS = 1;
+            S.empresa.proxNFSe = 1;
+            batch = null;
+            save();
+            closeModal();
+            go("painel");
+            toast("Movimentações apagadas");
+            break;
+        }
+      });
+      document.addEventListener("change", (e) => {
+        const t = e.target;
+        if (t.id === "file" && t.files[0]) {
+          if (isEmp()) lerArquivo(t.files[0]);
+          return;
+        }
+        if (t.dataset.filter) {
+          if (t.value || t.type !== "month") {
+            F[t.dataset.filter] = t.value;
+            render();
+          }
+        }
+      });
 
-(async()=>{try{await seedUsers()}catch(e){}loadSession();render()})();
-</script>
-</body>
+      (async () => {
+        try {
+          await seedUsers();
+        } catch (e) {}
+        loadSession();
+        render();
+      })();
+    </script>
+  </body>
 </html>
