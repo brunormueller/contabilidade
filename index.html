@@ -1478,7 +1478,7 @@
       <aside class="side">
         <div class="sidetop">
           <div class="brand">
-            <div class="mark">N</div>
+            <div class="mark" id="empMark" aria-hidden="true"></div>
             <div><b id="empNome"></b><small>Jaraguá do Sul/SC</small></div>
           </div>
           <span
@@ -1820,8 +1820,11 @@
         u.foto ? `<img src="${esc(u.foto)}" alt="">` : esc(iniciais(u.nome));
 
       function renderShell() {
-        document.getElementById("empNome").textContent =
-          S.empresa.razao || "Sua empresa";
+        const empresa = (S.empresa.razao || "").trim() || "Sua empresa";
+        document.getElementById("empNome").textContent = empresa;
+        document.getElementById("empMark").textContent = empresa
+          .charAt(0)
+          .toUpperCase();
         document.getElementById("nav").innerHTML = NAV.filter((n) =>
           n[2].includes(me.perfil),
         )
