@@ -1633,6 +1633,12 @@
         c && c.length === 6
           ? `${c.slice(0, 2)}.${c.slice(2, 4)}.${c.slice(4)}`
           : c || "—";
+      const fmtNBS = (c) =>
+        c && c.length === 9
+          ? `${c[0]}.${c.slice(1, 5)}.${c.slice(5, 7)}.${c.slice(7)}`
+          : c || "—";
+      const fmtPct = (v) =>
+        v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "%";
 
       /* ---------- estado ---------- */
       const KEY = "nfse-jgs-v1",
@@ -1649,6 +1655,8 @@
             proxNFSe: 1,
             vencDias: 10,
             cServPadrao: "",
+            cNBSPadrao: "",
+            aliqIss: null,
             cert: null,
           },
           users: [],
@@ -2111,6 +2119,10 @@
         "descricao",
         "valor",
         "codigo_servico",
+        "codigo_nbs",
+        "iss_retido",
+        "aliquota_iss",
+        "valor_inss_retido",
         "competencia",
         "vencimento",
       ];
@@ -2161,6 +2173,29 @@
           "ctribnac",
           "item",
         ],
+        nbs: ["codigo_nbs", "nbs", "cod nbs", "codigo nbs", "cnbs"],
+        issRet: [
+          "iss_retido",
+          "retencao iss",
+          "retencao de iss",
+          "reter iss",
+          "retem iss",
+        ],
+        aliqIss: [
+          "aliquota_iss",
+          "aliquota",
+          "aliquota do iss",
+          "aliq iss",
+          "% iss",
+        ],
+        inss: [
+          "valor_inss_retido",
+          "inss_retido",
+          "inss",
+          "valor inss",
+          "retencao inss",
+          "retencao de inss",
+        ],
         competencia: [
           "competencia",
           "data competencia",
@@ -2202,6 +2237,21 @@
         if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
         return parseFloat(s);
       }
+      function parseSimNao(v) {
+        if (typeof v === "boolean") return v;
+        const s = norm(v ?? "");
+        if (!s || ["nao", "n", "0", "false", "falso"].includes(s)) return false;
+        if (["sim", "s", "x", "1", "true", "verdadeiro", "retido"].includes(s))
+          return true;
+        return null;
+      }
+      // aceita 2,5 / 2.5 / "2,5%" e também a célula de porcentagem do Excel (0,025)
+      function parsePct(v) {
+        if (v === "" || v == null) return null;
+        if (typeof v === "number") return v > 0 && v < 1 ? v * 100 : v;
+        return parseValor(String(v).replace("%", ""));
+      }
+      const cents = (v) => Math.round(v * 100) / 100;
       function parseData(v) {
         if (v === "" || v == null) return "";
         if (v instanceof Date && !isNaN(v))
@@ -2241,6 +2291,11 @@
             descricao: String(g("descricao")).trim(),
             valor: parseValor(g("valor")),
             cServ: digits(g("cServ")) || digits(S.empresa.cServPadrao),
+            nbs: digits(g("nbs")) || digits(S.empresa.cNBSPadrao),
+            issRetido: parseSimNao(g("issRet")),
+            aliqIss: parsePct(g("aliqIss")),
+            vInssRet:
+              String(g("inss")).trim() === "" ? 0 : parseValor(g("inss")),
             competencia: parseData(g("competencia")),
             vencimento: parseData(g("vencimento")),
             errors: [],
@@ -2264,6 +2319,30 @@
             r.errors.push(
               "Código de serviço precisa ter 6 dígitos (ex.: 01.07.01)",
             );
+          if (r.nbs && r.nbs.length !== 9)
+            r.errors.push("Código NBS precisa ter 9 dígitos (ex.: 1.1502.10.00)");
+          if (r.issRetido === null) {
+            r.errors.push('ISS retido deve ser "Sim" ou "Não"');
+            r.issRetido = false;
+          }
+          if (r.issRetido) {
+            if (r.aliqIss == null) r.aliqIss = S.empresa.aliqIss;
+            if (r.aliqIss == null)
+              r.errors.push("Informe a alíquota do ISS retido");
+            else if (!(r.aliqIss > 0 && r.aliqIss <= 5))
+              r.errors.push("Alíquota do ISS deve ser maior que 0% e até 5%");
+          }
+          r.aliqIss = r.issRetido && r.aliqIss > 0 ? cents(r.aliqIss) : null;
+          if (!(r.vInssRet >= 0)) {
+            r.errors.push("Valor do INSS retido inválido");
+            r.vInssRet = 0;
+          }
+          r.vInssRet = cents(r.vInssRet);
+          r.vIssRet =
+            r.aliqIss && r.valor > 0 ? cents((r.valor * r.aliqIss) / 100) : 0;
+          r.vLiq = r.valor > 0 ? cents(r.valor - r.vIssRet - r.vInssRet) : 0;
+          if (r.valor > 0 && r.vLiq <= 0)
+            r.errors.push("Retenções iguais ou maiores que o valor do serviço");
           if (r.competencia === "invalida")
             r.errors.push("Competência em formato desconhecido");
           if (r.vencimento === "invalida")
@@ -2334,6 +2413,10 @@
           descricao: "Serviço de manutenção mensal de sistemas",
           valor: (850 + i * 175).toFixed(2).replace(".", ","),
           codigo_servico: "01.07.01",
+          codigo_nbs: "1.1502.10.00",
+          iss_retido: i === 3 || i === 4 ? "Sim" : "Não",
+          aliquota_iss: i === 3 ? "2,5" : i === 4 ? "3" : "",
+          valor_inss_retido: i === 4 ? "170,50" : "",
           competencia: "",
           vencimento: "",
         }));
@@ -2365,6 +2448,10 @@
             "Serviço de manutenção mensal",
             1200.5,
             "01.07.01",
+            "1.1502.10.00",
+            "Não",
+            "",
+            "",
             "01/" + todayISO().slice(5, 7) + "/" + todayISO().slice(0, 4),
             addDays(todayISO(), 10).split("-").reverse().join("/"),
           ],
@@ -2376,6 +2463,10 @@
           { wch: 36 },
           { wch: 10 },
           { wch: 15 },
+          { wch: 14 },
+          { wch: 11 },
+          { wch: 13 },
+          { wch: 18 },
           { wch: 13 },
           { wch: 13 },
         ];
@@ -2394,6 +2485,26 @@
             "codigo_servico",
             "Não",
             "Código de tributação nacional com 6 dígitos, ex.: 01.07.01. Vazio usa o padrão da empresa",
+          ],
+          [
+            "codigo_nbs",
+            "Não",
+            "Código NBS do serviço com 9 dígitos, ex.: 1.1502.10.00. Confira o código com a contabilidade. Vazio usa o padrão da empresa",
+          ],
+          [
+            "iss_retido",
+            "Não",
+            "Sim quando o tomador retém o ISS. Vazio ou Não para ISS recolhido no DAS",
+          ],
+          [
+            "aliquota_iss",
+            "Se ISS retido",
+            "Alíquota do ISS para a retenção, ex.: 2,5. Vazio usa a alíquota padrão da empresa",
+          ],
+          [
+            "valor_inss_retido",
+            "Não",
+            "Valor em reais do INSS retido pelo tomador, ex.: 132,00. Vazio é sem retenção",
           ],
           [
             "competencia",
@@ -2464,19 +2575,23 @@
     <button class="btn" data-action="exemplo">Testar com dados de exemplo</button>
   </div>
   <details><summary>Quais colunas a planilha precisa ter</summary>
-    <p>Obrigatórias: <code>tomador_documento</code> (CPF ou CNPJ), <code>tomador_nome</code>, <code>descricao</code> e <code>valor</code>. Opcionais: <code>tomador_email</code>, <code>codigo_servico</code> (código de tributação nacional, 6 dígitos), <code>competencia</code> e <code>vencimento</code>.</p>
-    <p>Nomes parecidos também funcionam, como “CNPJ”, “Cliente” ou “Valor do serviço”. Sem código de serviço, uso o padrão definido em Dados da empresa. Sem vencimento, uso ${+S.empresa.vencDias || 10} dias após a emissão.</p>
+    <p>Obrigatórias: <code>tomador_documento</code> (CPF ou CNPJ), <code>tomador_nome</code>, <code>descricao</code> e <code>valor</code>. Opcionais: <code>tomador_email</code>, <code>codigo_servico</code> (código de tributação nacional, 6 dígitos), <code>codigo_nbs</code> (9 dígitos), <code>iss_retido</code> (Sim ou Não), <code>aliquota_iss</code>, <code>valor_inss_retido</code>, <code>competencia</code> e <code>vencimento</code>.</p>
+    <p>Nomes parecidos também funcionam, como “CNPJ”, “Cliente” ou “Valor do serviço”. Sem código de serviço, NBS ou alíquota do ISS, uso o padrão definido em Dados da empresa. Com retenção, o título a receber fica com o valor líquido. Sem vencimento, uso ${+S.empresa.vencDias || 10} dias após a emissão.</p>
   </details>`;
         const ok = batch.rows.filter((r) => !r.errors.length),
           bad = batch.rows.length - ok.length;
-        const total = ok.reduce((a, r) => a + r.valor, 0);
+        const total = ok.reduce((a, r) => a + r.valor, 0),
+          liquido = ok.reduce((a, r) => a + r.vLiq, 0);
+        const totTxt =
+          brl(total) +
+          (cents(liquido) !== cents(total) ? `, líquido de ${brl(liquido)}` : "");
         const done = batch.rows.filter((r) => r.status === "autorizada").length;
         let top = "";
         if (batch.phase === "preview")
           top =
             certAlerta() +
             `
-    <div class="spread"><div><h1>Conferir lote</h1><p class="lead" style="margin:0">${esc(batch.fileName)}: ${ok.length} nota${ok.length !== 1 ? "s" : ""} pronta${ok.length !== 1 ? "s" : ""}, total de ${brl(total)}${bad ? `. ${bad} linha${bad > 1 ? "s" : ""} com erro ficará${bad > 1 ? "ão" : ""} de fora.` : "."}</p></div>
+    <div class="spread"><div><h1>Conferir lote</h1><p class="lead" style="margin:0">${esc(batch.fileName)}: ${ok.length} nota${ok.length !== 1 ? "s" : ""} pronta${ok.length !== 1 ? "s" : ""}, total de ${totTxt}${bad ? `. ${bad} linha${bad > 1 ? "s" : ""} com erro ficará${bad > 1 ? "ão" : ""} de fora.` : "."}</p></div>
     <div class="row"><button class="btn" data-action="trocar">Trocar planilha</button><button class="btn primary" data-action="emitir" ${ok.length ? "" : "disabled"}>Emitir ${ok.length} nota${ok.length !== 1 ? "s" : ""}</button></div></div>`;
         else if (batch.phase === "emitting")
           top = `
@@ -2485,20 +2600,21 @@
         else
           top = `
     <h1>Lote concluído</h1>
-    <div class="banner"><b>${done} nota${done !== 1 ? "s" : ""} autorizada${done !== 1 ? "s" : ""}, total de ${brl(total)}</b>As contas a receber foram criadas com os vencimentos da planilha.${bad ? ` ${bad} linha${bad > 1 ? "s" : ""} com erro não ${bad > 1 ? "foram enviadas" : "foi enviada"}.` : ""}</div>
+    <div class="banner"><b>${done} nota${done !== 1 ? "s" : ""} autorizada${done !== 1 ? "s" : ""}, total de ${totTxt}</b>As contas a receber foram criadas com os vencimentos da planilha.${bad ? ` ${bad} linha${bad > 1 ? "s" : ""} com erro não ${bad > 1 ? "foram enviadas" : "foi enviada"}.` : ""}</div>
     <div class="row" style="margin-bottom:18px"><button class="btn primary" data-action="nav" data-view="notas">Ver notas emitidas</button><button class="btn" data-action="trocar">Emitir outro lote</button></div>`;
         return (
           top +
           `
   <div class="tablewrap cards"><table>
-    <thead><tr><th>Linha</th><th>Tomador</th><th>Serviço</th><th class="num">Valor</th><th>Vencimento</th><th>Situação</th></tr></thead>
+    <thead><tr><th>Linha</th><th>Tomador</th><th>Serviço</th><th class="num">Valor</th><th class="num">Retenções</th><th>Vencimento</th><th>Situação</th></tr></thead>
     <tbody>${batch.rows
       .map(
         (r) => `<tr>
       <td class="muted" data-label="Linha">${r.i}</td>
       <td class="c-title">${esc(r.nome) || '<span class="muted">sem nome</span>'}<span class="sub">${esc(fmtDoc(r.doc)) || "sem documento"}</span></td>
-      <td data-label="Serviço">${esc(r.descricao)}<span class="sub">${fmtServ(r.cServ)}</span></td>
+      <td data-label="Serviço">${esc(r.descricao)}<span class="sub">${fmtServ(r.cServ)}${r.nbs ? ` · NBS ${fmtNBS(r.nbs)}` : ""}</span></td>
       <td class="num" data-label="Valor">${r.valor > 0 ? brl(r.valor) : "—"}</td>
+      <td class="num" data-label="Retenções">${retencoes(r).length ? `${retencoes(r).join("<br>")}<span class="sub">líquido ${brl(r.vLiq)}</span>` : '<span class="muted">—</span>'}</td>
       <td data-label="Vencimento">${fmtDate(r.vencimento)}</td>
       <td id="st-${r.i}" data-label="Situação">${rowStatus(r)}${r.errors.length ? `<ul class="errlist">${r.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}</td>
     </tr>`,
@@ -2529,6 +2645,12 @@
         const r = t % 11;
         return base + (r < 2 ? 0 : 11 - r);
       }
+      function retencoes(x) {
+        const p = [];
+        if (x.vIssRet) p.push(`ISS ${brl(x.vIssRet)} (${fmtPct(x.aliqIss)})`);
+        if (x.vInssRet) p.push(`INSS ${brl(x.vInssRet)}`);
+        return p;
+      }
       function criarNota(r, loteId) {
         const e = S.empresa;
         const nDPS = e.proxDPS++;
@@ -2544,7 +2666,13 @@
           tomador: { doc: r.doc, nome: r.nome, email: r.email },
           descricao: r.descricao,
           cServ: r.cServ,
+          nbs: r.nbs,
           valor: r.valor,
+          issRetido: r.issRetido,
+          aliqIss: r.aliqIss,
+          vIssRet: r.vIssRet,
+          vInssRet: r.vInssRet,
+          vLiq: r.vLiq,
           status: "autorizada",
           loteId,
         };
@@ -2554,7 +2682,7 @@
           notaId: nota.id,
           descricao: `NFS-e nº ${numero}`,
           cliente: r.nome,
-          valor: r.valor,
+          valor: r.vLiq,
           venc: r.vencimento,
           recebidoEm: null,
         });
@@ -2667,9 +2795,14 @@
     ${n.status === "cancelada" ? `<section class="cancelled">Nota cancelada. Motivo: ${esc(n.motivoCanc)}</section>` : ""}
     <section><h3>Prestador</h3>${esc(e.razao)}<br>CNPJ ${fmtDoc(e.cnpj)}${e.im ? `, IM ${esc(e.im)}` : ""}<br>Jaraguá do Sul/SC, optante pelo Simples Nacional</section>
     <section><h3>Tomador</h3>${esc(n.tomador.nome)}<br>${n.tomador.doc.length === 14 ? "CNPJ" : "CPF"} ${fmtDoc(n.tomador.doc)}${n.tomador.email ? `<br>${esc(n.tomador.email)}` : ""}</section>
-    <section><h3>Serviço</h3>${esc(n.descricao)}<br><span class="muted">Código de tributação nacional ${fmtServ(n.cServ)}</span></section>
+    <section><h3>Serviço</h3>${esc(n.descricao)}<br><span class="muted">Código de tributação nacional ${fmtServ(n.cServ)}${n.nbs ? `, NBS ${fmtNBS(n.nbs)}` : ""}</span></section>
     <section><h3>Datas</h3>Emissão ${fmtDateTime(n.dhEmi)}, competência ${fmtDate(n.competencia)}, DPS série ${esc(n.serie)} nº ${n.nDPS}</section>
     <section class="total"><span>Valor do serviço</span><strong>${brl(n.valor)}</strong></section>
+    ${
+      n.vIssRet || n.vInssRet
+        ? `<section><h3>Retenções</h3>${n.vIssRet ? `ISS retido pelo tomador, alíquota ${fmtPct(n.aliqIss)}: ${brl(n.vIssRet)}<br>` : ""}${n.vInssRet ? `INSS retido: ${brl(n.vInssRet)}<br>` : ""}<b>Valor líquido: ${brl(n.vLiq)}</b></section>`
+        : ""
+    }
     <section><h3>Chave de acesso</h3><span class="key">${n.chave}</span></section>
   </div>
   <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="xml" data-id="${n.id}">Baixar XML</button><button class="btn primary" data-action="fechar">Fechar</button></div>`);
@@ -2705,6 +2838,9 @@
       function xmlNota(n) {
         const e = S.empresa,
           tag = n.tomador.doc.length === 14 ? "CNPJ" : "CPF";
+        const vIss = n.vIssRet || 0,
+          vInss = n.vInssRet || 0,
+          vLiq = n.vLiq ?? n.valor;
         return `<?xml version="1.0" encoding="UTF-8"?>
 <!-- Arquivo gerado em simulação de homologação. Sem validade fiscal. -->
 <NFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
@@ -2716,6 +2852,10 @@
     <ambGer>2</ambGer>
     <dhProc>${n.dhEmi}</dhProc>
     <cStat>${n.status === "cancelada" ? "101" : "100"}</cStat>
+    <valores>${n.issRetido ? `\n      <vBC>${n.valor.toFixed(2)}</vBC>\n      <pAliqAplic>${n.aliqIss.toFixed(2)}</pAliqAplic>\n      <vISSQN>${vIss.toFixed(2)}</vISSQN>` : ""}
+      <vTotalRet>${(vIss + vInss).toFixed(2)}</vTotalRet>
+      <vLiq>${vLiq.toFixed(2)}</vLiq>
+    </valores>
     <DPS versao="1.00">
       <infDPS Id="DPS${e.ibge}2${digits(e.cnpj)}${String(e.serie).padStart(5, "0")}${String(n.nDPS).padStart(15, "0")}">
         <tpAmb>2</tpAmb>
@@ -2735,11 +2875,14 @@
         </toma>
         <serv>
           <locPrest><cLocPrestacao>${e.ibge}</cLocPrestacao></locPrest>
-          <cServ><cTribNac>${n.cServ}</cTribNac><xDescServ>${xe(n.descricao)}</xDescServ></cServ>
+          <cServ><cTribNac>${n.cServ}</cTribNac><xDescServ>${xe(n.descricao)}</xDescServ>${n.nbs ? `<cNBS>${n.nbs}</cNBS>` : ""}</cServ>
         </serv>
         <valores>
           <vServPrest><vServ>${n.valor.toFixed(2)}</vServ></vServPrest>
-          <trib><tribMun><tribISSQN>1</tribISSQN><tpRetISSQN>1</tpRetISSQN></tribMun><totTrib><indTotTrib>0</indTotTrib></totTrib></trib>
+          <trib>
+            <tribMun><tribISSQN>1</tribISSQN>${n.issRetido ? `<pAliq>${n.aliqIss.toFixed(2)}</pAliq><tpRetISSQN>2</tpRetISSQN>` : "<tpRetISSQN>1</tpRetISSQN>"}</tribMun>${vInss ? `\n            <tribFed><vRetCP>${vInss.toFixed(2)}</vRetCP></tribFed>` : ""}
+            <totTrib><indTotTrib>0</indTotTrib></totTrib>
+          </trib>
         </valores>
       </infDPS>
     </DPS>
@@ -2949,7 +3092,7 @@
   </div>
   <div class="tablewrap"><table><tbody>
     <tr><td><b>XMLs das notas</b><span class="sub">${notas.length} arquivo${notas.length !== 1 ? "s" : ""}, incluindo canceladas</span></td><td class="num"><button class="btn small" data-action="zipExp" ${notas.length ? "" : "disabled"}>Baixar .zip</button></td></tr>
-    <tr><td><b>Relatório de notas</b><span class="sub">Número, datas, tomador, valor, situação e chave</span></td><td class="num"><button class="btn small" data-action="csvNotas" ${notas.length ? "" : "disabled"}>Baixar .csv</button></td></tr>
+    <tr><td><b>Relatório de notas</b><span class="sub">Número, datas, tomador, valores, retenções, situação e chave</span></td><td class="num"><button class="btn small" data-action="csvNotas" ${notas.length ? "" : "disabled"}>Baixar .csv</button></td></tr>
     <tr><td><b>Movimento financeiro</b><span class="sub">Recebimentos e pagamentos realizados no mês</span></td><td class="num"><button class="btn small" data-action="csvFin" ${rec.length || pag.length ? "" : "disabled"}>Baixar .csv</button></td></tr>
   </tbody></table></div>`;
       };
@@ -2984,8 +3127,14 @@
               "Tomador",
               "CPF/CNPJ",
               "Código serviço",
+              "Código NBS",
               "Descrição",
               "Valor",
+              "ISS retido",
+              "Alíquota ISS",
+              "Valor ISS retido",
+              "Valor INSS retido",
+              "Valor líquido",
               "Situação",
               "Chave de acesso",
             ],
@@ -2996,8 +3145,14 @@
               n.tomador.nome,
               fmtDoc(n.tomador.doc),
               fmtServ(n.cServ),
+              n.nbs ? fmtNBS(n.nbs) : "",
               n.descricao,
               dec(n.valor),
+              n.issRetido ? "Sim" : "Não",
+              n.issRetido ? dec(n.aliqIss) : "",
+              dec(n.vIssRet || 0),
+              dec(n.vInssRet || 0),
+              dec(n.vLiq ?? n.valor),
               n.status === "autorizada" ? "Autorizada" : "Cancelada",
               n.chave,
             ]),
@@ -3210,6 +3365,8 @@
       <div class="field"><label>Município</label><input value="Jaraguá do Sul/SC (IBGE 4208906)" disabled></div>
       <div class="field"><label>Regime</label><input value="Simples Nacional, ME/EPP" disabled></div>
       <div class="field"><label for="cServ">Código de serviço padrão</label><input id="cServ" value="${esc(fmtServ(e.cServPadrao) === "—" ? "" : fmtServ(e.cServPadrao))}" placeholder="Ex.: 01.07.01"></div>
+      <div class="field"><label for="cNbs">Código NBS padrão</label><input id="cNbs" value="${esc(e.cNBSPadrao ? fmtNBS(e.cNBSPadrao) : "")}" placeholder="Ex.: 1.1502.10.00"></div>
+      <div class="field"><label for="cAliq">Alíquota do ISS retido (%)</label><input id="cAliq" inputmode="decimal" value="${e.aliqIss != null ? String(e.aliqIss).replace(".", ",") : ""}" placeholder="Ex.: 2,5"></div>
       <div class="field"><label for="cVenc">Vencimento padrão (dias)</label><input id="cVenc" type="number" min="0" value="${+e.vencDias}"></div>
       <div class="field"><label for="cSerie">Série da DPS</label><input id="cSerie" value="${esc(e.serie)}"></div>
       <div class="field"><label for="cDps">Próximo nº da DPS</label><input id="cDps" type="number" min="1" value="${e.proxDPS}"></div>
@@ -3230,6 +3387,16 @@
           toast("O código de serviço precisa ter 6 dígitos.");
           return;
         }
+        const nbs = digits(g("cNbs"));
+        if (nbs && nbs.length !== 9) {
+          toast("O código NBS precisa ter 9 dígitos.");
+          return;
+        }
+        const aliq = g("cAliq") ? parsePct(g("cAliq")) : null;
+        if (aliq != null && !(aliq > 0 && aliq <= 5)) {
+          toast("A alíquota do ISS deve ser maior que 0% e até 5%.");
+          return;
+        }
         if (S.empresa.cert && cnpj !== S.empresa.cert.cnpj) {
           S.empresa.cert = null;
           toast("CNPJ alterado. Verifique o certificado de novo.");
@@ -3239,6 +3406,8 @@
           cnpj,
           im: g("cIm"),
           cServPadrao: sv,
+          cNBSPadrao: nbs,
+          aliqIss: aliq != null ? cents(aliq) : null,
           vencDias: Math.max(0, parseInt(g("cVenc")) || 0),
           serie: g("cSerie") || "900",
           proxDPS: Math.max(1, parseInt(g("cDps")) || 1),
