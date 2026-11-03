@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "pulsing-dot",
+        "value": "*",
+        "files": [
+          "index.html"
+        ],
+        "createdAt": "2026-11-03T13:03:23.691Z",
+        "reason": "Claude: .chip.pulse only appears on the 'Enviando' chip while a note is actually being sent in emitirLote(); it is tied to live progress"
+      }
+    ]
+  }
+}

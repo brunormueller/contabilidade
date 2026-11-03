@@ -164,6 +164,7 @@
       /* login */
       .login {
         min-height: 100vh;
+        min-height: 100dvh;
         display: grid;
         grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
       }
@@ -260,6 +261,7 @@
         display: grid;
         grid-template-columns: 256px minmax(0, 1fr);
         min-height: 100vh;
+        min-height: 100dvh;
       }
       .side {
         background: var(--navy);
@@ -271,6 +273,7 @@
         position: sticky;
         top: env(safe-area-inset-top, 0px);
         height: 100vh;
+        height: 100dvh;
         overflow: auto;
         align-self: start;
       }
@@ -279,6 +282,10 @@
         gap: 12px;
         align-items: center;
         padding: 0 8px;
+        min-width: 0;
+      }
+      .brand > div {
+        min-width: 0;
       }
       .mark {
         width: 38px;
@@ -325,6 +332,7 @@
         display: flex;
         flex-direction: column;
         gap: 2px;
+        position: relative;
       }
       .nav button {
         display: flex;
@@ -381,10 +389,79 @@
         font-weight: 600;
         flex: none;
         border: 1px solid rgba(194, 161, 94, 0.4);
+        overflow: hidden;
       }
-      .me div {
+      .avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      button.avatar {
+        padding: 0;
+        cursor: pointer;
+        width: 36px;
+        height: 36px;
+      }
+      .avatar.sm {
+        width: 30px;
+        height: 30px;
+        font-size: 12px;
+      }
+      .avatar.lg {
+        width: 76px;
+        height: 76px;
+        font-size: 26px;
+        border-width: 2px;
+      }
+      .me .who {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        flex: 1;
+        min-width: 0;
+        background: none;
+        border: 0;
+        margin: -6px 0 -6px -6px;
+        padding: 6px;
+        border-radius: 10px;
+        text-align: left;
+        color: inherit;
+        cursor: pointer;
+      }
+      .me .who:hover {
+        background: var(--navy-2);
+      }
+      .me .who-txt {
+        display: block;
         min-width: 0;
         flex: 1;
+      }
+      .me small {
+        display: block;
+      }
+      .perfil {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+      }
+      .perfil > div {
+        min-width: 0;
+      }
+      .perfil b {
+        display: block;
+        font-size: 16px;
+      }
+      .withav {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .mobileacts {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        flex: none;
       }
       .me b {
         display: block;
@@ -416,6 +493,7 @@
         padding: 40px clamp(18px, 4vw, 56px) 72px;
         max-width: 1160px;
         width: 100%;
+        container-type: inline-size;
       }
       h1 {
         font-family: var(--serif);
@@ -525,26 +603,26 @@
       }
       .grid2 {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(300px, 100%), 1fr));
         gap: 20px;
       }
 
+      /* o gap de 1px sobre o fundo --line desenha os divisores em qualquer quebra */
       .summary {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 1px;
         border: 1px solid var(--line);
         border-radius: 16px;
-        background: var(--surface);
+        background: var(--line);
         overflow: hidden;
         margin-bottom: 20px;
         box-shadow: var(--shadow);
       }
       .summary div {
         padding: 20px 22px;
-        border-right: 1px solid var(--line);
-      }
-      .summary div:last-child {
-        border-right: 0;
+        background: var(--surface);
+        min-width: 0;
       }
       .summary span {
         display: block;
@@ -556,10 +634,11 @@
         display: block;
         font-family: var(--serif);
         font-weight: 400;
-        font-size: 32px;
+        font-size: clamp(22px, 4cqi - 6px, 32px);
         line-height: 1.1;
         margin-top: 6px;
         letter-spacing: -0.01em;
+        white-space: nowrap;
       }
       .summary em {
         font-style: normal;
@@ -788,7 +867,7 @@
 
       .form {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(190px, 100%), 1fr));
         gap: 14px 16px;
         align-items: end;
       }
@@ -860,6 +939,9 @@
         color: var(--ink-3);
         font-size: 12.5px;
       }
+      .list b {
+        white-space: nowrap;
+      }
       .empty {
         color: var(--ink-3);
         padding: 6px 0;
@@ -867,7 +949,7 @@
 
       .cert {
         display: grid;
-        grid-template-columns: auto 1fr;
+        grid-template-columns: auto minmax(0, 1fr);
         gap: 16px;
         align-items: start;
       }
@@ -890,7 +972,7 @@
       }
       .kv {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(min(170px, 100%), 1fr));
         gap: 10px 18px;
         margin: 12px 0 0;
       }
@@ -919,7 +1001,9 @@
         max-width: 640px;
         width: 100%;
         max-height: calc(100vh - 32px);
+        max-height: calc(100dvh - 32px);
         overflow: auto;
+        overscroll-behavior: contain;
         padding: 26px;
         box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.45);
       }
@@ -1008,22 +1092,48 @@
         transform: translateX(-50%) translateY(0);
       }
 
+      @media (min-width: 861px) and (max-width: 1080px) {
+        .app {
+          grid-template-columns: 220px minmax(0, 1fr);
+        }
+      }
       @media (max-width: 860px) {
+        /* minmax(0) impede tabelas e nav de alargarem a coluna além da tela;
+           a linha auto impede o min-height de esticar o topo */
         .login {
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto 1fr;
         }
         .login-art {
-          padding: 32px 24px 36px;
+          padding: 28px 16px 32px;
           min-height: auto;
         }
+        .login-art:not(:has(*)) {
+          display: none;
+        }
         .login-art h2 {
-          font-size: 34px;
+          font-size: 30px;
+          margin-bottom: 10px;
+        }
+        .login-art p {
+          font-size: 14px;
+        }
+        .login-art::after {
+          width: 260px;
+          height: 260px;
+          right: -100px;
+          bottom: -120px;
         }
         .login-art .foot {
           display: none;
         }
+        .login-form {
+          place-items: start center;
+          padding: 32px 16px 40px;
+        }
         .app {
-          grid-template-columns: 1fr;
+          grid-template-columns: minmax(0, 1fr);
+          grid-template-rows: auto 1fr;
         }
         .side {
           position: static;
@@ -1039,6 +1149,16 @@
         }
         .brand {
           padding: 0;
+        }
+        .brand b {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        /* abaixo de 16px o iOS dá zoom ao focar o campo */
+        .field input,
+        .field select {
+          font-size: 16px;
         }
         .env {
           display: none;
@@ -1073,6 +1193,9 @@
         .me {
           display: none;
         }
+        .mobileacts {
+          display: flex;
+        }
         .mobileout {
           display: grid !important;
         }
@@ -1082,12 +1205,188 @@
         h1 {
           font-size: 32px;
         }
+      }
+      @media (max-width: 640px) {
+        main {
+          padding: 24px 16px 56px;
+        }
+        .login-card h1 {
+          font-size: 32px;
+        }
+        .modal {
+          place-items: end center;
+          padding: 0;
+        }
+        .dialog {
+          border-radius: 18px 18px 0 0;
+          max-height: 92vh;
+          max-height: 92dvh;
+          padding: 22px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+        }
+        .dialog h2 {
+          font-size: 24px;
+        }
+        .dialog .row .btn {
+          flex: 1 1 auto;
+          justify-content: center;
+        }
+        .doc header,
+        .doc section {
+          padding-left: 14px;
+          padding-right: 14px;
+        }
+        .doc .total strong {
+          font-size: 24px;
+        }
+      }
+
+      @container (max-width: 720px) {
+        .summary {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
         .summary div {
-          border-right: 0;
+          padding: 16px;
+        }
+        .summary strong {
+          font-size: clamp(20px, 6.6cqi, 30px);
+        }
+      }
+      @container (max-width: 620px) {
+        h1 {
+          font-size: 30px;
+        }
+        .lead {
+          margin-bottom: 20px;
+        }
+        .panel {
+          padding: 18px 16px;
+        }
+        .spread {
+          align-items: stretch;
+        }
+        .spread > span:empty {
+          display: none;
+        }
+        .spread > .filters,
+        .spread > .row {
+          width: 100%;
+        }
+        .spread > .row .btn {
+          flex: 1 1 auto;
+          justify-content: center;
+        }
+        .filters .field {
+          flex: 1 1 140px;
+          min-width: 0;
+        }
+        .filters > .btn {
+          flex: 1 1 100%;
+          justify-content: center;
+        }
+        .cert {
+          grid-template-columns: minmax(0, 1fr);
+          gap: 12px;
+        }
+        .cert .seal {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+        }
+        .drop {
+          padding: 32px 16px;
+        }
+        .drop strong {
+          font-size: 22px;
+        }
+      }
+      @container (max-width: 760px) {
+        /* tabelas .cards viram um cartão por linha: rótulo à esquerda, valor à direita */
+        .tablewrap.cards {
+          overflow: hidden;
+        }
+        .cards table,
+        .cards tbody,
+        .cards tfoot,
+        .cards tr,
+        .cards td {
+          display: block;
+        }
+        .cards thead {
+          display: none;
+        }
+        .cards tbody tr {
+          display: flex;
+          flex-direction: column;
+          gap: 6px;
+          padding: 14px 16px;
           border-bottom: 1px solid var(--line);
         }
-        .summary div:last-child {
+        .cards tbody tr:last-child {
           border-bottom: 0;
+        }
+        .cards tbody tr:hover td {
+          background: none;
+        }
+        .cards td {
+          position: relative;
+          border: 0;
+          padding: 0 0 0 38%;
+          text-align: right;
+          overflow-wrap: anywhere;
+        }
+        .cards td[data-label]::before {
+          content: attr(data-label);
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 36%;
+          text-align: left;
+          color: var(--ink-3);
+          font-size: 13px;
+        }
+        .cards td.c-title {
+          order: -1;
+          padding: 0 0 4px;
+          text-align: left;
+          font-weight: 600;
+          font-size: 15px;
+        }
+        .cards td.c-title .sub {
+          font-weight: 400;
+        }
+        .cards td.c-actions {
+          padding: 4px 0 0;
+          text-align: left;
+        }
+        .cards td:has(> .actions:empty) {
+          display: none;
+        }
+        .cards .actions {
+          justify-content: flex-start;
+          gap: 22px;
+        }
+        .cards .actions .link {
+          padding: 6px 0;
+        }
+        .cards .errlist {
+          display: inline-block;
+          text-align: left;
+        }
+        .cards tfoot tr {
+          display: flex;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 12px 16px;
+          background: var(--surface-2);
+          border-top: 1px solid var(--line);
+        }
+        .cards tfoot td {
+          padding: 0;
+          border: 0;
+          background: none;
+        }
+        .cards tfoot td:empty {
+          display: none;
         }
       }
       @media (min-width: 861px) {
@@ -1187,17 +1486,29 @@
             title="As notas não são enviadas à Receita. Use para testar o fluxo."
             >Homologação simulada</span
           >
-          <button class="mobileout" data-action="logout" aria-label="Sair">
-            <svg class="i" viewBox="0 0 24 24">
-              <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
-              <path d="M10 17l-5-5 5-5M5 12h11" />
-            </svg>
-          </button>
+          <div class="mobileacts">
+            <button
+              class="avatar"
+              id="meAvM"
+              data-action="perfil"
+              aria-label="Meu perfil"
+            ></button>
+            <button class="mobileout" data-action="logout" aria-label="Sair">
+              <svg class="i" viewBox="0 0 24 24">
+                <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
+                <path d="M10 17l-5-5 5-5M5 12h11" />
+              </svg>
+            </button>
+          </div>
         </div>
         <nav class="nav" id="nav" aria-label="Seções"></nav>
         <div class="me">
-          <div class="avatar" id="meAv"></div>
-          <div><b id="meNome"></b><small id="mePerfil"></small></div>
+          <button class="who" data-action="perfil" title="Meu perfil">
+            <span class="avatar" id="meAv"></span>
+            <span class="who-txt"
+              ><b id="meNome"></b><small id="mePerfil"></small
+            ></span>
+          </button>
           <button data-action="logout" aria-label="Sair" title="Sair">
             <svg class="i" viewBox="0 0 24 24">
               <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3" />
@@ -1360,7 +1671,10 @@
       function save() {
         try {
           localStorage.setItem(KEY, JSON.stringify(S));
-        } catch (e) {}
+          return true;
+        } catch (e) {
+          return false;
+        }
       }
 
       let view = "painel";
@@ -1502,6 +1816,9 @@
           .join("")
           .toUpperCase();
 
+      const avatarHTML = (u) =>
+        u.foto ? `<img src="${esc(u.foto)}" alt="">` : esc(iniciais(u.nome));
+
       function renderShell() {
         document.getElementById("empNome").textContent =
           S.empresa.razao || "Sua empresa";
@@ -1513,7 +1830,14 @@
               `<button data-action="nav" data-view="${k}" ${k === view ? 'aria-current="page"' : ""}>${icon(k)}<span>${l}</span></button>`,
           )
           .join("");
-        document.getElementById("meAv").textContent = iniciais(me.nome);
+        // no mobile a nav rola na horizontal e o innerHTML zera a rolagem
+        const nav = document.getElementById("nav"),
+          cur = nav.querySelector("[aria-current]");
+        if (cur && nav.scrollWidth > nav.clientWidth)
+          nav.scrollLeft =
+            cur.offsetLeft - (nav.clientWidth - cur.offsetWidth) / 2;
+        document.getElementById("meAv").innerHTML = avatarHTML(me);
+        document.getElementById("meAvM").innerHTML = avatarHTML(me);
         document.getElementById("meNome").textContent = me.nome;
         document.getElementById("mePerfil").textContent =
           me.perfil === "empresa" ? "Empresa" : "Contador, somente leitura";
@@ -1523,8 +1847,8 @@
         document.getElementById("login").hidden = logged;
         document.getElementById("app").hidden = !logged;
         if (!logged) {
-          document.getElementById("lgEmp").textContent =
-            S.empresa.razao || "Sua empresa";
+          const lgEmp = document.getElementById("lgEmp");
+          if (lgEmp) lgEmp.textContent = S.empresa.razao || "Sua empresa";
           return;
         }
         const nv = NAV.find((n) => n[0] === view);
@@ -2163,17 +2487,17 @@
         return (
           top +
           `
-  <div class="tablewrap"><table>
+  <div class="tablewrap cards"><table>
     <thead><tr><th>Linha</th><th>Tomador</th><th>Serviço</th><th class="num">Valor</th><th>Vencimento</th><th>Situação</th></tr></thead>
     <tbody>${batch.rows
       .map(
         (r) => `<tr>
-      <td class="muted">${r.i}</td>
-      <td>${esc(r.nome) || '<span class="muted">sem nome</span>'}<span class="sub">${esc(fmtDoc(r.doc)) || "sem documento"}</span></td>
-      <td>${esc(r.descricao)}<span class="sub">${fmtServ(r.cServ)}</span></td>
-      <td class="num">${r.valor > 0 ? brl(r.valor) : "—"}</td>
-      <td>${fmtDate(r.vencimento)}</td>
-      <td id="st-${r.i}">${rowStatus(r)}${r.errors.length ? `<ul class="errlist">${r.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}</td>
+      <td class="muted" data-label="Linha">${r.i}</td>
+      <td class="c-title">${esc(r.nome) || '<span class="muted">sem nome</span>'}<span class="sub">${esc(fmtDoc(r.doc)) || "sem documento"}</span></td>
+      <td data-label="Serviço">${esc(r.descricao)}<span class="sub">${fmtServ(r.cServ)}</span></td>
+      <td class="num" data-label="Valor">${r.valor > 0 ? brl(r.valor) : "—"}</td>
+      <td data-label="Vencimento">${fmtDate(r.vencimento)}</td>
+      <td id="st-${r.i}" data-label="Situação">${rowStatus(r)}${r.errors.length ? `<ul class="errlist">${r.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}</td>
     </tr>`,
       )
       .join("")}</tbody>
@@ -2311,16 +2635,16 @@
   </div></div>
   ${
     list.length
-      ? `<div class="tablewrap"><table>
+      ? `<div class="tablewrap cards"><table>
     <thead><tr><th>Nº</th><th>Emissão</th><th>Tomador</th><th class="num">Valor</th><th>Situação</th><th></th></tr></thead>
     <tbody>${list
       .map(
         (n) => `<tr>
-      <td><b>${n.numero}</b></td><td>${fmtDateTime(n.dhEmi)}</td>
-      <td>${esc(n.tomador.nome)}<span class="sub">${fmtDoc(n.tomador.doc)}</span></td>
-      <td class="num">${brl(n.valor)}</td>
-      <td>${n.status === "autorizada" ? '<span class="chip ok">Autorizada</span>' : '<span class="chip bad">Cancelada</span>'}</td>
-      <td><div class="actions"><button class="link" data-action="ver" data-id="${n.id}">Ver</button><button class="link" data-action="xml" data-id="${n.id}">XML</button>${isEmp() && n.status === "autorizada" ? `<button class="link bad" data-action="cancelar" data-id="${n.id}">Cancelar</button>` : ""}</div></td>
+      <td data-label="Nº"><b>${n.numero}</b></td><td data-label="Emissão">${fmtDateTime(n.dhEmi)}</td>
+      <td class="c-title">${esc(n.tomador.nome)}<span class="sub">${fmtDoc(n.tomador.doc)}</span></td>
+      <td class="num" data-label="Valor">${brl(n.valor)}</td>
+      <td data-label="Situação">${n.status === "autorizada" ? '<span class="chip ok">Autorizada</span>' : '<span class="chip bad">Cancelada</span>'}</td>
+      <td class="c-actions"><div class="actions"><button class="link" data-action="ver" data-id="${n.id}">Ver</button><button class="link" data-action="xml" data-id="${n.id}">XML</button>${isEmp() && n.status === "autorizada" ? `<button class="link bad" data-action="cancelar" data-id="${n.id}">Cancelar</button>` : ""}</div></td>
     </tr>`,
       )
       .join("")}</tbody>
@@ -2466,15 +2790,15 @@
   </select></div></div></div>
   ${
     list.length
-      ? `<div class="tablewrap"><table>
+      ? `<div class="tablewrap cards"><table>
     <thead><tr><th>Vencimento</th><th>Cliente</th><th>Origem</th><th class="num">Valor</th><th>Situação</th>${isEmp() ? "<th></th>" : ""}</tr></thead>
     <tbody>${list
       .map((t) => {
         const s = stReceber(t);
         return `<tr>
-      <td>${fmtDate(t.venc)}</td><td>${esc(t.cliente)}</td><td>${esc(t.descricao)}</td><td class="num">${brl(t.valor)}</td>
-      <td>${chipFin(s)}${t.recebidoEm ? `<span class="sub">em ${fmtDate(t.recebidoEm)}</span>` : ""}</td>
-      ${isEmp() ? `<td><div class="actions">${t.recebidoEm ? `<button class="link" data-action="desfazRec" data-id="${t.id}">Desfazer</button>` : `<button class="link" data-action="receber" data-id="${t.id}">Marcar recebido</button>`}</div></td>` : ""}
+      <td data-label="Vencimento">${fmtDate(t.venc)}</td><td class="c-title">${esc(t.cliente)}</td><td data-label="Origem">${esc(t.descricao)}</td><td class="num" data-label="Valor">${brl(t.valor)}</td>
+      <td data-label="Situação">${chipFin(s)}${t.recebidoEm ? `<span class="sub">em ${fmtDate(t.recebidoEm)}</span>` : ""}</td>
+      ${isEmp() ? `<td class="c-actions"><div class="actions">${t.recebidoEm ? `<button class="link" data-action="desfazRec" data-id="${t.id}">Desfazer</button>` : `<button class="link" data-action="receber" data-id="${t.id}">Marcar recebido</button>`}</div></td>` : ""}
     </tr>`;
       })
       .join("")}</tbody>
@@ -2535,15 +2859,15 @@
   </select></div></div></div>
   ${
     list.length
-      ? `<div class="tablewrap"><table>
+      ? `<div class="tablewrap cards"><table>
     <thead><tr><th>Vencimento</th><th>Descrição</th><th>Categoria</th><th class="num">Valor</th><th>Situação</th>${isEmp() ? "<th></th>" : ""}</tr></thead>
     <tbody>${list
       .map((t) => {
         const s = stPagar(t);
         return `<tr>
-      <td>${fmtDate(t.venc)}</td><td>${esc(t.descricao)}<span class="sub">${esc(t.fornecedor || "")}${t.recorrente ? (t.fornecedor ? ", " : "") + "mensal" : ""}</span></td><td>${esc(t.categoria)}</td><td class="num">${brl(t.valor)}</td>
-      <td>${chipFin(s)}${t.pagoEm ? `<span class="sub">em ${fmtDate(t.pagoEm)}</span>` : ""}</td>
-      ${isEmp() ? `<td><div class="actions">${t.pagoEm ? `<button class="link" data-action="desfazPag" data-id="${t.id}">Desfazer</button>` : `<button class="link" data-action="pagar" data-id="${t.id}">Marcar paga</button>`}<button class="link bad" data-action="delPagar" data-id="${t.id}">Excluir</button></div></td>` : ""}
+      <td data-label="Vencimento">${fmtDate(t.venc)}</td><td class="c-title">${esc(t.descricao)}<span class="sub">${esc(t.fornecedor || "")}${t.recorrente ? (t.fornecedor ? ", " : "") + "mensal" : ""}</span></td><td data-label="Categoria">${esc(t.categoria)}</td><td class="num" data-label="Valor">${brl(t.valor)}</td>
+      <td data-label="Situação">${chipFin(s)}${t.pagoEm ? `<span class="sub">em ${fmtDate(t.pagoEm)}</span>` : ""}</td>
+      ${isEmp() ? `<td class="c-actions"><div class="actions">${t.pagoEm ? `<button class="link" data-action="desfazPag" data-id="${t.id}">Desfazer</button>` : `<button class="link" data-action="pagar" data-id="${t.id}">Marcar paga</button>`}<button class="link bad" data-action="delPagar" data-id="${t.id}">Excluir</button></div></td>` : ""}
     </tr>`;
       })
       .join("")}</tbody>
@@ -2723,14 +3047,14 @@
       V.usuarios = () => `
   <h1>Usuários</h1>
   <p class="lead">O perfil contador consulta notas, financeiro e arquivos, sem emitir nem alterar.</p>
-  <div class="tablewrap" style="margin-bottom:20px"><table>
+  <div class="tablewrap cards" style="margin-bottom:20px"><table>
     <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th></th></tr></thead>
     <tbody>${S.users
       .map(
         (u) => `<tr>
-      <td><b>${esc(u.nome)}</b>${u.id === me.id ? '<span class="sub">Você</span>' : ""}</td><td>${esc(u.email)}</td>
-      <td>${u.perfil === "empresa" ? '<span class="chip brand">Empresa</span>' : '<span class="chip neutral">Contador</span>'}</td>
-      <td><div class="actions">${u.id !== me.id ? `<button class="link bad" data-action="delUser" data-id="${u.id}">Remover acesso</button>` : ""}</div></td>
+      <td class="c-title"><div class="withav"><span class="avatar sm">${avatarHTML(u)}</span><span><b>${esc(u.nome)}</b>${u.id === me.id ? '<span class="sub">Você</span>' : ""}</span></div></td><td data-label="E-mail">${esc(u.email)}</td>
+      <td data-label="Perfil">${u.perfil === "empresa" ? '<span class="chip brand">Empresa</span>' : '<span class="chip neutral">Contador</span>'}</td>
+      <td class="c-actions"><div class="actions">${u.id !== me.id ? `<button class="link bad" data-action="delUser" data-id="${u.id}">Remover acesso</button>` : ""}</div></td>
     </tr>`,
       )
       .join("")}</tbody>
@@ -2770,6 +3094,74 @@
         save();
         render();
         toast(`${nome} adicionado`);
+      }
+
+      /* --- meu perfil --- */
+      function abrirPerfil() {
+        openModal(`<h2>Meu perfil</h2>
+  <div class="perfil" style="margin:14px 0 6px">
+    <span class="avatar lg">${avatarHTML(me)}</span>
+    <div>
+      <b>${esc(me.nome)}</b><span class="muted">${esc(me.email)}</span>
+      <div class="row" style="margin-top:12px;gap:8px">
+        <button class="btn small" data-action="escolherFoto">${me.foto ? "Trocar foto" : "Carregar foto"}</button>
+        ${me.foto ? '<button class="btn small danger" data-action="removerFoto">Remover foto</button>' : ""}
+        <input type="file" id="fotoFile" accept="image/*" hidden>
+      </div>
+    </div>
+  </div>
+  <p class="muted" style="font-size:13px;margin:12px 0 0">JPG, PNG ou WebP. A foto é cortada em quadrado pelo centro e aparece no menu e na lista de usuários.</p>
+  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn primary" data-action="fechar">Fechar</button></div>`);
+      }
+      // corta no centro e reduz para 192px, para caber folgado no localStorage
+      async function salvarFoto(file) {
+        if (!/^image\//.test(file.type)) {
+          toast("Escolha um arquivo de imagem.");
+          return;
+        }
+        let foto;
+        try {
+          const url = URL.createObjectURL(file);
+          const img = new Image();
+          await new Promise((ok, err) => {
+            img.onload = ok;
+            img.onerror = err;
+            img.src = url;
+          });
+          URL.revokeObjectURL(url);
+          const L = 192,
+            s = Math.min(img.naturalWidth, img.naturalHeight);
+          const c = document.createElement("canvas");
+          c.width = c.height = L;
+          const ctx = c.getContext("2d");
+          ctx.fillStyle = "#fff";
+          ctx.fillRect(0, 0, L, L);
+          ctx.drawImage(
+            img,
+            (img.naturalWidth - s) / 2,
+            (img.naturalHeight - s) / 2,
+            s,
+            s,
+            0,
+            0,
+            L,
+            L,
+          );
+          foto = c.toDataURL("image/jpeg", 0.85);
+        } catch (e) {
+          toast("Não consegui ler essa imagem.");
+          return;
+        }
+        const antes = me.foto;
+        me.foto = foto;
+        if (!save()) {
+          me.foto = antes;
+          toast("Sem espaço no navegador para salvar a foto.");
+          return;
+        }
+        render();
+        abrirPerfil();
+        toast("Foto atualizada");
       }
 
       /* --- empresa e certificado --- */
@@ -2885,6 +3277,19 @@
             break;
           case "logout":
             sair();
+            break;
+          case "perfil":
+            abrirPerfil();
+            break;
+          case "escolherFoto":
+            document.getElementById("fotoFile").click();
+            break;
+          case "removerFoto":
+            delete me.foto;
+            save();
+            render();
+            abrirPerfil();
+            toast("Foto removida");
             break;
           case "nav":
             closeModal();
@@ -3018,6 +3423,10 @@
         const t = e.target;
         if (t.id === "file" && t.files[0]) {
           if (isEmp()) lerArquivo(t.files[0]);
+          return;
+        }
+        if (t.id === "fotoFile" && t.files[0]) {
+          salvarFoto(t.files[0]);
           return;
         }
         if (t.dataset.filter) {
