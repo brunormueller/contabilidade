@@ -37,7 +37,8 @@ const Cfg = z.object({
       cst: z.string().regex(/^\d{3}$/, "CST do IBS/CBS tem 3 dígitos."),
       cClassTrib: z.string().regex(/^\d{6}$/, "cClassTrib tem 6 dígitos."),
       cIndOp: z.string().regex(/^\d{6}$/, "cIndOp tem 6 dígitos.").optional(),
-      indDest: z.enum(["0", "1"], { message: "indDest deve ser 0 ou 1." }),
+      // E0910: indDest = 1 exige o grupo do destinatário, que a planilha não tem
+      indDest: z.literal("0", { message: "indDest = 1 (destinatário diferente do tomador) não é suportado: exige o grupo do destinatário (E0910)." }),
       indFinal: z.enum(["0", "1"], { message: "indFinal deve ser 0 ou 1." }).optional(),
     })
     .nullable()

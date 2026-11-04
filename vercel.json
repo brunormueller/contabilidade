@@ -6,5 +6,6 @@
   "rewrites": [{ "source": "/api/:path*", "destination": "/api" }],
   "functions": {
     "api/index.ts": { "maxDuration": 60, "includeFiles": "xsd/**" }
-  }
+  },
+  "crons": [{ "path": "/api/cron/processar", "schedule": "0 12 * * *" }]
 }

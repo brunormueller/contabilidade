@@ -10,6 +10,8 @@ const schema = z.object({
   CERT_ENC_KEY: z.string().optional(),
   CERT_ENC_KEY_VERSION: z.coerce.number().int().positive().default(1),
   NFSE_AMBIENTE: z.enum(AMBIENTES).default("producao_restrita"),
+  // o manual não fixa o algoritmo da assinatura; ver src/nfse/assinatura.ts
+  NFSE_ASSINATURA: z.enum(["sha1", "sha256"]).default("sha256"),
   CRON_SECRET: z.string().optional(),
 });
 

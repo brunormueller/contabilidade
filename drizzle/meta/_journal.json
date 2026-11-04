@@ -15,6 +15,13 @@
       "when": 1793737455445,
       "tag": "0001_config_fiscal",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793814989675,
+      "tag": "0002_fila",
+      "breakpoints": true
     }
   ]
 }

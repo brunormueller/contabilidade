@@ -57,6 +57,10 @@ describe("empresa", () => {
     const sem = (await (await c.put("/api/empresa", cfg)).json()) as { pTotTribSN: number; ibsCbs: unknown };
     expect(sem).toMatchObject({ pTotTribSN: 6, ibsCbs });
     expect((await c.put("/api/empresa", { ...cfg, ibsCbs: { ...ibsCbs, cst: "1" } })).status).toBe(400);
+    // E0910: indDest = 1 exige o grupo do destinatário, que não enviamos
+    const dest = await c.put("/api/empresa", { ...cfg, ibsCbs: { ...ibsCbs, indDest: "1" } });
+    expect(dest.status).toBe(400);
+    expect(((await dest.json()) as { erro: string }).erro).toMatch(/E0910/);
     expect((await c.put("/api/empresa", { ...cfg, cLocPrestacao: "42" })).status).toBe(400);
   });
 

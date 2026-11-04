@@ -7,15 +7,16 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>Notas e Financeiro</title>
+    <link rel="icon" href="data:," />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif&display=swap"
       rel="stylesheet"
     />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/forge/1.3.1/forge.min.js"></script>
+    <!-- servidos pelo próprio site (public/vendor): SheetJS 0.20.3 de cdn.sheetjs.com, JSZip 3.10.1 do npm -->
+    <script src="/vendor/xlsx-0.20.3.full.min.js"></script>
+    <script src="/vendor/jszip-3.10.1.min.js"></script>
     <style>
       :root {
         --bg: #f3f4f6;
@@ -242,20 +243,6 @@
         min-height: 21px;
         margin: 0 0 8px;
       }
-      .demo {
-        margin-top: 28px;
-        border-top: 1px solid var(--line);
-        padding-top: 18px;
-        font-size: 13.5px;
-        color: var(--ink-2);
-      }
-      .demo p {
-        margin: 0 0 10px;
-      }
-      .demo .row {
-        gap: 8px;
-      }
-
       /* shell */
       .app {
         display: grid;
@@ -1450,27 +1437,6 @@
           </div>
           <p class="loginerr" id="lgErr" role="alert"></p>
           <button class="btn primary" type="submit">Entrar</button>
-          <div class="demo">
-            <p>Contas de teste, ambas com a senha demo1234:</p>
-            <div class="row">
-              <button
-                type="button"
-                class="btn small"
-                data-action="demoLogin"
-                data-email="gustavo@empresa.com.br"
-              >
-                Empresa
-              </button>
-              <button
-                type="button"
-                class="btn small"
-                data-action="demoLogin"
-                data-email="contador@escritorio.com.br"
-              >
-                Contador
-              </button>
-            </div>
-          </div>
         </form>
       </div>
     </div>
@@ -1483,8 +1449,10 @@
           </div>
           <span
             class="env"
-            title="As notas não são enviadas à Receita. Use para testar o fluxo."
-            >Homologação simulada</span
+            id="envBadge"
+            title="Ambiente de testes da Sefin Nacional: as notas não têm valor fiscal."
+            hidden
+            >Produção restrita</span
           >
           <div class="mobileacts">
             <button
@@ -1540,16 +1508,10 @@
         const [y, m, d] = iso.split("-").map(Number);
         return toISO(new Date(y, m - 1, d + n));
       }
-      function addMonths(iso, n) {
-        const [y, m, d] = iso.split("-").map(Number);
-        const dt = new Date(y, m - 1 + n, 1);
-        const last = new Date(dt.getFullYear(), dt.getMonth() + 1, 0).getDate();
-        dt.setDate(Math.min(d, last));
-        return toISO(dt);
-      }
       const fmtDate = (iso) =>
         iso ? iso.slice(0, 10).split("-").reverse().join("/") : "—";
       const fmtDateTime = (iso) => {
+        if (!iso) return "—";
         const d = new Date(iso);
         return (
           d.toLocaleDateString("pt-BR") +
@@ -1557,6 +1519,11 @@
           d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
         );
       };
+      const fmtHora = (iso) =>
+        new Date(iso).toLocaleTimeString("pt-BR", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
       const monthLabel = (ym) => {
         const [y, m] = ym.split("-").map(Number);
         const s = new Date(y, m - 1, 1).toLocaleDateString("pt-BR", {
@@ -1565,9 +1532,6 @@
         });
         return s.charAt(0).toUpperCase() + s.slice(1);
       };
-      const uid = () =>
-        Math.random().toString(36).slice(2, 10) +
-        Date.now().toString(36).slice(-4);
       const esc = (s) =>
         String(s ?? "").replace(
           /[&<>"']/g,
@@ -1581,8 +1545,14 @@
             })[c],
         );
       const digits = (s) => String(s ?? "").replace(/\D/g, "");
-      const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+      // CNPJ pode ter letras (CNPJ alfanumérico); CPF só dígitos
+      const docNorm = (s) =>
+        String(s ?? "")
+          .toUpperCase()
+          .replace(/[^0-9A-Z]/g, "");
+      const plural = (n, s, p = s + "s") => (n === 1 ? s : p);
 
+      // só para os dados de exemplo
       function cnpjDV(b) {
         const calc = (s, n) => {
           let t = 0,
@@ -1598,35 +1568,12 @@
         const d2 = calc(b + d1, 13);
         return b + d1 + d2;
       }
-      function cpfDV(b) {
-        const calc = (s, n) => {
-          let t = 0;
-          for (let i = 0; i < n; i++) t += +s[i] * (n + 1 - i);
-          let r = (t * 10) % 11;
-          return r === 10 ? 0 : r;
-        };
-        const d1 = calc(b, 9);
-        return b + d1 + calc(b + d1, 10);
-      }
-      function validCNPJ(c) {
-        c = digits(c);
-        if (c.length !== 14 || /^(\d)\1+$/.test(c)) return false;
-        return cnpjDV(c.slice(0, 12)) === c;
-      }
-      function validCPF(c) {
-        c = digits(c);
-        if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
-        return cpfDV(c.slice(0, 9)) === c;
-      }
       function fmtDoc(d) {
-        d = digits(d);
+        d = docNorm(d);
         if (d.length === 14)
-          return d.replace(
-            /(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/,
-            "$1.$2.$3/$4-$5",
-          );
+          return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
         if (d.length === 11)
-          return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+          return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
         return d;
       }
       const fmtServ = (c) =>
@@ -1639,55 +1586,84 @@
           : c || "—";
       const fmtPct = (v) =>
         v.toLocaleString("pt-BR", { maximumFractionDigits: 2 }) + "%";
+      const numBR = (v) => (v == null ? "" : String(v).replace(".", ","));
+      function parseNum(v) {
+        let s = String(v ?? "").replace(/[R$\s%]/g, "");
+        if (!s) return NaN;
+        if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
+        return /^-?\d+(\.\d+)?$/.test(s) ? Number(s) : NaN;
+      }
+      const novaChave = () =>
+        crypto.randomUUID
+          ? crypto.randomUUID()
+          : [...crypto.getRandomValues(new Uint8Array(16))]
+              .map((b) => b.toString(16).padStart(2, "0"))
+              .join("");
 
-      /* ---------- estado ---------- */
-      const KEY = "nfse-jgs-v1",
-        SKEY = "nfse-jgs-sessao";
-      function defaultState() {
-        return {
-          empresa: {
-            razao: "",
-            cnpj: cnpjDV("112223330001"),
-            im: "",
-            ibge: "4208906",
-            serie: "900",
-            proxDPS: 1,
-            proxNFSe: 1,
-            vencDias: 10,
-            cServPadrao: "",
-            cNBSPadrao: "",
-            aliqIss: null,
-            cert: null,
-          },
-          users: [],
-          notas: [],
-          receber: [],
-          pagar: [],
-          lotes: [],
-        };
-      }
-      let S;
-      try {
-        const raw = localStorage.getItem(KEY);
-        S = raw ? JSON.parse(raw) : null;
-      } catch (e) {
-        S = null;
-      }
-      S = Object.assign(defaultState(), S || {});
-      S.empresa = Object.assign(defaultState().empresa, S.empresa || {});
-      delete S.role;
-      function save() {
-        try {
-          localStorage.setItem(KEY, JSON.stringify(S));
-          return true;
-        } catch (e) {
-          return false;
+      /* ---------- API ---------- */
+      // Tudo passa pelo servidor. Sessão em cookie HttpOnly: este script nunca vê o token.
+      class ErroApi extends Error {
+        constructor(status, message, detalhes) {
+          super(message);
+          this.status = status;
+          this.detalhes = detalhes;
         }
       }
+      async function api(metodo, caminho, corpo) {
+        const init = { method: metodo, headers: {}, credentials: "same-origin" };
+        if (corpo instanceof FormData) init.body = corpo;
+        else if (corpo !== undefined) {
+          init.body = JSON.stringify(corpo);
+          init.headers["content-type"] = "application/json";
+        }
+        let r;
+        try {
+          r = await fetch("/api" + caminho, init);
+        } catch (e) {
+          throw new ErroApi(
+            0,
+            "Sem conexão com o servidor. Confira a internet e tente de novo.",
+          );
+        }
+        const tipo = r.headers.get("content-type") || "";
+        const dados = tipo.includes("json") ? await r.json().catch(() => null) : null;
+        if (r.status === 401 && caminho !== "/auth/login" && me) {
+          me = null;
+          batch = null;
+          closeModal();
+          render();
+          toast("Sua sessão expirou. Entre de novo.");
+        }
+        if (!r.ok)
+          throw new ErroApi(
+            r.status,
+            (dados && dados.erro) || "Erro inesperado. Tente de novo.",
+            dados && dados.detalhes,
+          );
+        return dados;
+      }
+      async function baixarDaApi(caminho, nome) {
+        let r;
+        try {
+          r = await fetch("/api" + caminho, { credentials: "same-origin" });
+        } catch (e) {
+          throw new ErroApi(0, "Sem conexão com o servidor.");
+        }
+        if (!r.ok) {
+          const d = await r.json().catch(() => null);
+          throw new ErroApi(r.status, (d && d.erro) || "Não foi possível baixar o arquivo.");
+        }
+        await baixar(nome, await r.blob());
+      }
 
+      /* ---------- estado ---------- */
+      let me = null,
+        ambiente = null,
+        empresa = null;
       let view = "painel";
       let batch = null;
-      let me = null;
+      let dados = null; // o que a view atual carregou da API
+      let fotoVer = Date.now();
       const F = {
         notasMes: todayISO().slice(0, 7),
         notasStatus: "todas",
@@ -1695,73 +1671,34 @@
         pagar: "abertos",
         expMes: todayISO().slice(0, 7),
       };
+      const restrita = () => ambiente !== "producao";
 
       /* ---------- login ---------- */
-      async function hashPw(pw, salt) {
-        const d = await crypto.subtle.digest(
-          "SHA-256",
-          new TextEncoder().encode(salt + ":" + pw),
-        );
-        return [...new Uint8Array(d)]
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
+      async function carregarEmpresa() {
+        empresa = await api("GET", "/empresa");
+        return empresa;
       }
-      async function novoUsuario(nome, email, perfil, senha) {
-        const salt = uid() + uid();
-        return {
-          id: uid(),
-          nome,
-          email: email.toLowerCase(),
-          perfil,
-          salt,
-          hash: await hashPw(senha, salt),
-          criadoEm: new Date().toISOString(),
-        };
-      }
-      async function seedUsers() {
-        if (S.users.length) return;
-        S.users = [
-          await novoUsuario(
-            "Gustavo",
-            "gustavo@empresa.com.br",
-            "empresa",
-            "demo1234",
-          ),
-          await novoUsuario(
-            "Contador",
-            "contador@escritorio.com.br",
-            "contador",
-            "demo1234",
-          ),
-        ];
-        save();
-      }
-      function loadSession() {
-        try {
-          const id = localStorage.getItem(SKEY);
-          me = S.users.find((u) => u.id === id) || null;
-        } catch (e) {
-          me = null;
-        }
+      async function iniciarSessao() {
+        const r = await api("GET", "/auth/me");
+        me = r.usuario;
+        ambiente = r.ambiente;
+        await carregarEmpresa();
       }
       async function entrar(email, senha) {
-        const u = S.users.find((x) => x.email === email.trim().toLowerCase());
-        if (!u || (await hashPw(senha, u.salt)) !== u.hash) return false;
-        me = u;
-        try {
-          localStorage.setItem(SKEY, u.id);
-        } catch (e) {}
+        await api("POST", "/auth/login", { email: email.trim(), senha });
+        await iniciarSessao();
         view = "painel";
         batch = null;
-        return true;
       }
-      function sair() {
-        me = null;
-        batch = null;
+      async function sair() {
         try {
-          localStorage.removeItem(SKEY);
+          await api("POST", "/auth/logout", {});
         } catch (e) {}
+        me = null;
+        empresa = null;
+        batch = null;
         closeModal();
+        document.getElementById("toast").classList.remove("show");
         render();
       }
       document
@@ -1769,17 +1706,22 @@
         .addEventListener("submit", async (e) => {
           e.preventDefault();
           const err = document.getElementById("lgErr");
+          const bt = e.target.querySelector("button[type=submit]");
           err.textContent = "";
-          const ok = await entrar(
-            document.getElementById("lgEmail").value,
-            document.getElementById("lgSenha").value,
-          );
-          if (!ok) {
-            err.textContent = "E-mail ou senha incorretos.";
-            return;
+          bt.disabled = true;
+          try {
+            await entrar(
+              document.getElementById("lgEmail").value,
+              document.getElementById("lgSenha").value,
+            );
+            document.getElementById("lgSenha").value = "";
+            render();
+          } catch (ex) {
+            me = null;
+            err.textContent = ex.message;
+          } finally {
+            bt.disabled = false;
           }
-          document.getElementById("lgSenha").value = "";
-          render();
         });
 
       /* ---------- navegação ---------- */
@@ -1825,14 +1767,18 @@
           .toUpperCase();
 
       const avatarHTML = (u) =>
-        u.foto ? `<img src="${esc(u.foto)}" alt="">` : esc(iniciais(u.nome));
+        u.temFoto
+          ? `<img src="/api/usuarios/${encodeURIComponent(u.id)}/foto?v=${fotoVer}" alt="">`
+          : esc(iniciais(u.nome));
 
       function renderShell() {
-        const empresa = (S.empresa.razao || "").trim() || "Sua empresa";
-        document.getElementById("empNome").textContent = empresa;
-        document.getElementById("empMark").textContent = empresa
+        const nome = ((empresa && empresa.razao) || "").trim() || "Sua empresa";
+        document.getElementById("empNome").textContent = nome;
+        document.getElementById("empMark").textContent = nome
           .charAt(0)
           .toUpperCase();
+        const env = document.getElementById("envBadge");
+        env.hidden = !restrita();
         document.getElementById("nav").innerHTML = NAV.filter((n) =>
           n[2].includes(me.perfil),
         )
@@ -1853,19 +1799,47 @@
         document.getElementById("mePerfil").textContent =
           me.perfil === "empresa" ? "Empresa" : "Contador, somente leitura";
       }
-      function render() {
+
+      // O que cada tela busca antes de desenhar.
+      const L = {
+        painel: () => api("GET", "/painel"),
+        lote: () => api("GET", "/lotes"),
+        notas: () =>
+          api("GET", `/notas?mes=${F.notasMes}&status=${F.notasStatus}`),
+        receber: () => api("GET", `/receber?filtro=${F.receber}`),
+        pagar: () => api("GET", `/pagar?filtro=${F.pagar}`),
+        exportar: () => api("GET", `/exportar/${F.expMes}`),
+        usuarios: () => api("GET", "/usuarios"),
+        config: () => carregarEmpresa(),
+      };
+      let seqRender = 0;
+      async function render() {
         const logged = !!me;
         document.getElementById("login").hidden = logged;
         document.getElementById("app").hidden = !logged;
-        if (!logged) {
-          const lgEmp = document.getElementById("lgEmp");
-          if (lgEmp) lgEmp.textContent = S.empresa.razao || "Sua empresa";
-          return;
-        }
+        if (!logged) return;
         const nv = NAV.find((n) => n[0] === view);
         if (!nv || !nv[2].includes(me.perfil)) view = "painel";
         renderShell();
-        document.getElementById("main").innerHTML = (V[view] || V.painel)();
+        const seq = ++seqRender,
+          v = view;
+        let html;
+        try {
+          const d = L[v] ? await L[v]() : null;
+          if (seq !== seqRender) return;
+          dados = d;
+          html = V[v](d);
+        } catch (e) {
+          if (seq !== seqRender || !me) return;
+          html = `<div class="banner bad"><b>Não consegui carregar esta tela</b>${esc(e.message)}</div><button class="btn" data-action="nav" data-view="${v}">Tentar de novo</button>`;
+        }
+        document.getElementById("main").innerHTML = html;
+        if (v === "lote") bindDrop();
+      }
+      /** Redesenha a tela atual com o que já foi carregado, sem buscar de novo. */
+      function redesenhar() {
+        if (!me) return;
+        document.getElementById("main").innerHTML = V[view](dados);
         if (view === "lote") bindDrop();
       }
       function go(v) {
@@ -1874,14 +1848,14 @@
         window.scrollTo(0, 0);
       }
 
-      /* ---------- certificado ---------- */
+      /* ---------- certificado e pendências ---------- */
       function diasAte(iso) {
         const a = new Date(todayISO() + "T00:00:00"),
-          b = new Date(iso.slice(0, 10) + "T00:00:00");
+          b = new Date(String(iso).slice(0, 10) + "T00:00:00");
         return Math.round((b - a) / 864e5);
       }
       function certStatus() {
-        const c = S.empresa.cert;
+        const c = empresa && empresa.cert;
         if (!c) return { k: "falta" };
         const d = diasAte(c.validoAte);
         if (d < 0) return { k: "vencido", d };
@@ -1889,24 +1863,23 @@
         return { k: "ok", d };
       }
       function certAlerta() {
-        if (!isEmp()) return "";
+        if (!isEmp() || !empresa) return "";
         const s = certStatus();
+        let h = "";
         if (s.k === "falta")
-          return `<div class="alert"><span><b>Certificado A1 não verificado.</b> Ele é necessário para emitir notas no Emissor Nacional.</span><button class="btn small" data-action="nav" data-view="config">Verificar certificado</button></div>`;
-        if (s.k === "vencido")
-          return `<div class="alert bad"><span><b>Certificado A1 vencido.</b> Renove o e-CNPJ para voltar a emitir notas.</span><button class="btn small" data-action="nav" data-view="config">Atualizar certificado</button></div>`;
-        if (s.k === "vencendo")
-          return `<div class="alert"><span><b>Certificado A1 vence em ${s.d} dia${s.d !== 1 ? "s" : ""}</b>, em ${fmtDate(S.empresa.cert.validoAte)}. Renove antes para não interromper a emissão.</span><button class="btn small" data-action="nav" data-view="config">Ver certificado</button></div>`;
-        return "";
+          h = `<div class="alert"><span><b>Certificado A1 não enviado.</b> Ele é necessário para assinar e enviar as notas ao Emissor Nacional.</span><button class="btn small" data-action="nav" data-view="config">Enviar certificado</button></div>`;
+        else if (s.k === "vencido")
+          h = `<div class="alert bad"><span><b>Certificado A1 vencido.</b> Renove o e-CNPJ para voltar a emitir notas.</span><button class="btn small" data-action="nav" data-view="config">Atualizar certificado</button></div>`;
+        else if (s.k === "vencendo")
+          h = `<div class="alert"><span><b>Certificado A1 vence em ${s.d} ${plural(s.d, "dia")}</b>, em ${fmtDate(empresa.cert.validoAte)}. Renove antes para não interromper a emissão.</span><button class="btn small" data-action="nav" data-view="config">Ver certificado</button></div>`;
+        const outras = (empresa.pendencias || []).filter(
+          (p) => !/certificado/i.test(p),
+        );
+        if (outras.length)
+          h += `<div class="alert"><span><b>Configuração fiscal incompleta.</b> ${outras.map(esc).join(" ")}</span><button class="btn small" data-action="nav" data-view="config">Completar</button></div>`;
+        return h;
       }
-      function binStr(buf) {
-        const u = new Uint8Array(buf);
-        let s = "";
-        for (let i = 0; i < u.length; i += 8192)
-          s += String.fromCharCode.apply(null, u.subarray(i, i + 8192));
-        return s;
-      }
-      async function verificarCert() {
+      async function enviarCert() {
         const fi = document.getElementById("certFile"),
           pw = document.getElementById("certSenha"),
           out = document.getElementById("certErr");
@@ -1921,61 +1894,16 @@
           pw.focus();
           return;
         }
-        if (typeof forge === "undefined") {
-          out.textContent =
-            "O leitor de certificados não carregou. Recarregue a página.";
-          return;
-        }
+        const fd = new FormData();
+        fd.append("arquivo", file);
+        fd.append("senha", pw.value);
         try {
-          const p12 = forge.pkcs12.pkcs12FromAsn1(
-            forge.asn1.fromDer(binStr(await file.arrayBuffer())),
-            false,
-            pw.value,
-          );
-          const bags = (
-            p12.getBags({ bagType: forge.pki.oids.certBag })[
-              forge.pki.oids.certBag
-            ] || []
-          )
-            .map((b) => b.cert)
-            .filter(Boolean);
-          const cn = (c) => {
-            const a = c.subject.getField("CN");
-            return a ? a.value : "";
-          };
-          const cert =
-            bags.find((c) => /:\d{14}$/.test(cn(c))) ||
-            bags.find((c) => {
-              const bc = c.getExtension("basicConstraints");
-              return !bc || !bc.cA;
-            }) ||
-            bags[0];
-          if (!cert) throw new Error("sem certificado");
-          const nome = cn(cert);
-          const m = nome.match(/^(.*):(\d{14})$/);
-          const cnpj = m ? m[2] : "";
-          if (cnpj && cnpj !== digits(S.empresa.cnpj)) {
-            out.textContent = `Este certificado é do CNPJ ${fmtDoc(cnpj)}, diferente do cadastrado (${fmtDoc(S.empresa.cnpj)}).`;
-            return;
-          }
-          const iss = cert.issuer.getField("CN");
-          S.empresa.cert = {
-            titular: m ? m[1] : nome,
-            cnpj: cnpj || digits(S.empresa.cnpj),
-            emissor: iss ? iss.value : "",
-            validoDe: toISO(cert.validity.notBefore),
-            validoAte: toISO(cert.validity.notAfter),
-            verificadoEm: new Date().toISOString(),
-            arquivo: file.name,
-          };
-          save();
+          await api("POST", "/certificado", fd);
+          await carregarEmpresa();
           render();
-          toast("Certificado verificado");
+          toast("Certificado verificado e guardado");
         } catch (e) {
-          const msg = String((e && e.message) || "");
-          out.textContent = /password|MAC/i.test(msg)
-            ? "Senha incorreta para este certificado."
-            : "Não consegui ler este arquivo. Confira se é o .pfx ou .p12 do e-CNPJ A1.";
+          out.textContent = e.message;
         } finally {
           pw.value = "";
         }
@@ -1993,7 +1921,7 @@
       function openModal(html) {
         document.getElementById("dialog").innerHTML = html;
         document.getElementById("modal").classList.add("open");
-        const f = document.querySelector("#dialog input,#dialog button");
+        const f = document.querySelector("#dialog input,#dialog select,#dialog button");
         f && f.focus();
       }
       function closeModal() {
@@ -2062,44 +1990,63 @@
           recebido: '<span class="chip ok">Recebido</span>',
           pago: '<span class="chip ok">Pago</span>',
         })[s];
+      function chipNota(n) {
+        return {
+          fila: '<span class="chip neutral">Na fila</span>',
+          processando: '<span class="chip brand pulse">Enviando</span>',
+          verificar: '<span class="chip warn">Confirmando com a Sefin</span>',
+          autorizada: `<span class="chip ok">Autorizada${n.numero ? ` nº ${esc(n.numero)}` : ""}</span>`,
+          rejeitada: '<span class="chip bad">Rejeitada</span>',
+          cancelamento_pendente:
+            '<span class="chip warn">Cancelamento pendente</span>',
+          cancelada: '<span class="chip bad">Cancelada</span>',
+        }[n.status];
+      }
+      /** Motivo da rejeição ou da espera, embaixo da situação. */
+      function detalheNota(n) {
+        let h = "";
+        if (n.status === "verificar")
+          h += `<span class="sub">${n.proximaTentativaEm ? `Nova consulta às ${fmtHora(n.proximaTentativaEm)}` : "Parou de tentar. Use Reprocessar."}</span>`;
+        if (n.erro && ["rejeitada", "verificar", "autorizada"].includes(n.status)) {
+          const lista = Array.isArray(n.erro.erros)
+            ? n.erro.erros.filter((x) => typeof x === "string")
+            : [];
+          h += `<ul class="errlist"><li>${esc(n.erro.mensagem)}</li>${lista.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+        }
+        return h;
+      }
+      function retencoes(x) {
+        const p = [];
+        if (x.vIssRet) p.push(`ISS ${brl(x.vIssRet)} (${fmtPct(x.aliqIss)})`);
+        if (x.vInssRet) p.push(`INSS ${brl(x.vInssRet)}`);
+        return p;
+      }
 
       /* ---------- views ---------- */
       const V = {};
 
-      V.painel = () => {
-        const ym = todayISO().slice(0, 7),
-          hoje = todayISO(),
-          em7 = addDays(hoje, 7);
-        const notasMes = S.notas.filter(
-          (n) => n.competencia.slice(0, 7) === ym && n.status === "autorizada",
-        );
-        const fat = notasMes.reduce((a, n) => a + n.valor, 0);
-        const abertos = S.receber.filter((t) => !t.recebidoEm);
-        const vencidos = abertos.filter((t) => t.venc < hoje);
-        const pagarSemana = S.pagar
-          .filter((t) => !t.pagoEm && t.venc <= em7)
-          .sort((a, b) => a.venc.localeCompare(b.venc));
-        const ult = S.lotes[0];
+      V.painel = (p) => {
+        const hoje = todayISO();
+        const ult = p.ultimoLote;
         return `
   <h1>Olá, ${esc(me.nome.split(" ")[0])}</h1>
-  <p class="lead">${monthLabel(ym)}${ult ? `. Último lote emitido em ${fmtDateTime(ult.data)} com ${ult.qtd} notas.` : "."}</p>
+  <p class="lead">${monthLabel(p.mes)}${ult ? `. Último lote enviado em ${fmtDateTime(ult.data)} com ${ult.qtd} ${plural(ult.qtd, "nota")}.` : "."}</p>
   ${certAlerta()}
   <div class="summary">
-    <div><span>Faturado no mês</span><strong>${brl(fat)}</strong></div>
-    <div><span>Notas no mês</span><strong>${notasMes.length}</strong></div>
-    <div><span>A receber em aberto</span><strong>${brl(abertos.reduce((a, t) => a + t.valor, 0))}</strong>${vencidos.length ? `<em>${vencidos.length} vencido${vencidos.length > 1 ? "s" : ""}</em>` : ""}</div>
-    <div><span>A pagar em 7 dias</span><strong>${brl(pagarSemana.reduce((a, t) => a + t.valor, 0))}</strong></div>
+    <div><span>Faturado no mês</span><strong>${brl(p.faturado)}</strong></div>
+    <div><span>Notas no mês</span><strong>${p.notasMes}</strong></div>
+    <div><span>A receber em aberto</span><strong>${brl(p.aReceberAberto)}</strong>${p.vencidosQtd ? `<em>${p.vencidosQtd} ${plural(p.vencidosQtd, "vencido")}</em>` : ""}</div>
+    <div><span>A pagar em 7 dias</span><strong>${brl(p.pagarSemanaTotal)}</strong></div>
   </div>
-  ${!S.notas.length && isEmp() ? `<div class="panel" style="margin-bottom:18px"><h2>Nenhuma nota emitida ainda</h2><p class="muted" style="margin:0 0 12px">Envie a planilha do mês para emitir todas as notas de uma vez.</p><button class="btn primary" data-action="nav" data-view="lote">Emitir notas em lote</button></div>` : ""}
+  ${!p.temNotas && isEmp() ? `<div class="panel" style="margin-bottom:18px"><h2>Nenhuma nota emitida ainda</h2><p class="muted" style="margin:0 0 12px">Envie a planilha do mês para emitir todas as notas de uma vez.</p><button class="btn primary" data-action="nav" data-view="lote">Emitir notas em lote</button></div>` : ""}
   <div class="grid2">
-    <div class="panel"><h2>Contas a pagar até ${fmtDate(em7)}</h2>
-      ${pagarSemana.length ? `<ul class="list">${pagarSemana.map((t) => `<li><span>${esc(t.descricao)}<small>${fmtDate(t.venc)}${t.venc < hoje ? ", vencida" : ""}</small></span><b>${brl(t.valor)}</b></li>`).join("")}</ul>` : '<p class="empty">Nada para pagar nos próximos dias.</p>'}
+    <div class="panel"><h2>Contas a pagar até ${fmtDate(p.ate)}</h2>
+      ${p.pagarSemana.length ? `<ul class="list">${p.pagarSemana.map((t) => `<li><span>${esc(t.descricao)}<small>${fmtDate(t.venc)}${t.venc < hoje ? ", vencida" : ""}</small></span><b>${brl(t.valor)}</b></li>`).join("")}</ul>` : '<p class="empty">Nada para pagar nos próximos dias.</p>'}
     </div>
     <div class="panel"><h2>Recebimentos vencidos</h2>
       ${
-        vencidos.length
-          ? `<ul class="list">${vencidos
-              .slice(0, 8)
+        p.vencidos.length
+          ? `<ul class="list">${p.vencidos
               .map(
                 (t) =>
                   `<li><span>${esc(t.cliente)}<small>${esc(t.descricao)}, venceu em ${fmtDate(t.venc)}</small></span><b>${brl(t.valor)}</b></li>`,
@@ -2126,265 +2073,19 @@
         "competencia",
         "vencimento",
       ];
-      const COLS = {
-        doc: [
-          "tomador_documento",
-          "cnpj",
-          "cpf",
-          "cnpj/cpf",
-          "cpf/cnpj",
-          "cnpj_cpf",
-          "cpf_cnpj",
-          "documento",
-          "doc",
-          "tomador cnpj",
-        ],
-        nome: [
-          "tomador_nome",
-          "nome",
-          "cliente",
-          "tomador",
-          "razao social",
-          "razao_social",
-          "nome do cliente",
-        ],
-        email: ["tomador_email", "email", "e-mail", "email do cliente"],
-        descricao: [
-          "descricao",
-          "descricao do servico",
-          "discriminacao",
-          "discriminacao do servico",
-          "servico",
-          "historico",
-        ],
-        valor: [
-          "valor",
-          "valor do servico",
-          "valor_servico",
-          "valor total",
-          "total",
-        ],
-        cServ: [
-          "codigo_servico",
-          "codigo",
-          "cod servico",
-          "codigo do servico",
-          "codigo de tributacao",
-          "ctribnac",
-          "item",
-        ],
-        nbs: ["codigo_nbs", "nbs", "cod nbs", "codigo nbs", "cnbs"],
-        issRet: [
-          "iss_retido",
-          "retencao iss",
-          "retencao de iss",
-          "reter iss",
-          "retem iss",
-        ],
-        aliqIss: [
-          "aliquota_iss",
-          "aliquota",
-          "aliquota do iss",
-          "aliq iss",
-          "% iss",
-        ],
-        inss: [
-          "valor_inss_retido",
-          "inss_retido",
-          "inss",
-          "valor inss",
-          "retencao inss",
-          "retencao de inss",
-        ],
-        competencia: [
-          "competencia",
-          "data competencia",
-          "mes de competencia",
-          "data",
-        ],
-        vencimento: [
-          "vencimento",
-          "data vencimento",
-          "data de vencimento",
-          "venc",
-        ],
-      };
-      const norm = (s) =>
-        String(s)
-          .normalize("NFD")
-          .replace(/[\u0300-\u036f]/g, "")
-          .toLowerCase()
-          .replace(/_/g, " ")
-          .replace(/\s+/g, " ")
-          .trim();
-      function mapHeaders(headers) {
-        const map = {};
-        headers.forEach((h) => {
-          const nh = norm(h);
-          for (const k in COLS) {
-            if (!map[k] && COLS[k].some((a) => norm(a) === nh)) {
-              map[k] = h;
-              break;
-            }
-          }
-        });
-        return map;
-      }
-      function parseValor(v) {
-        if (typeof v === "number") return v;
-        let s = String(v ?? "").replace(/[R$\s]/g, "");
-        if (!s) return NaN;
-        if (s.includes(",")) s = s.replace(/\./g, "").replace(",", ".");
-        return parseFloat(s);
-      }
-      function parseSimNao(v) {
-        if (typeof v === "boolean") return v;
-        const s = norm(v ?? "");
-        if (!s || ["nao", "n", "0", "false", "falso"].includes(s)) return false;
-        if (["sim", "s", "x", "1", "true", "verdadeiro", "retido"].includes(s))
-          return true;
-        return null;
-      }
-      // aceita 2,5 / 2.5 / "2,5%" e também a célula de porcentagem do Excel (0,025)
-      function parsePct(v) {
-        if (v === "" || v == null) return null;
-        if (typeof v === "number") return v > 0 && v < 1 ? v * 100 : v;
-        return parseValor(String(v).replace("%", ""));
-      }
-      const cents = (v) => Math.round(v * 100) / 100;
-      function parseData(v) {
-        if (v === "" || v == null) return "";
-        if (v instanceof Date && !isNaN(v))
-          return toISO(new Date(v.getTime() + 12 * 3600e3));
-        if (typeof v === "number") {
-          const d = new Date(Math.round((v - 25569) * 864e5));
-          return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;
-        }
-        const s = String(v).trim();
-        let m;
-        if ((m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/))) {
-          const y = m[3].length === 2 ? "20" + m[3] : m[3];
-          return `${y}-${pad(m[2])}-${pad(m[1])}`;
-        }
-        if ((m = s.match(/^(\d{1,2})\/(\d{4})$/)))
-          return `${m[2]}-${pad(m[1])}-01`;
-        if ((m = s.match(/^(\d{4})-(\d{2})-(\d{2})/)))
-          return `${m[1]}-${m[2]}-${m[3]}`;
-        if ((m = s.match(/^(\d{4})-(\d{2})$/))) return `${m[1]}-${m[2]}-01`;
-        return "invalida";
-      }
-      function validarLinhas(objs) {
-        const headers = objs.length ? Object.keys(objs[0]) : [];
-        const map = mapHeaders(headers);
-        const faltando = ["doc", "nome", "descricao", "valor"].filter(
-          (k) => !map[k],
-        );
-        const rows = [];
-        objs.forEach((o, idx) => {
-          const g = (k) => (map[k] ? o[map[k]] : "");
-          if (Object.values(o).every((v) => String(v).trim() === "")) return;
-          const r = {
-            i: idx + 2,
-            doc: digits(g("doc")),
-            nome: String(g("nome")).trim(),
-            email: String(g("email")).trim(),
-            descricao: String(g("descricao")).trim(),
-            valor: parseValor(g("valor")),
-            cServ: digits(g("cServ")) || digits(S.empresa.cServPadrao),
-            nbs: digits(g("nbs")) || digits(S.empresa.cNBSPadrao),
-            issRetido: parseSimNao(g("issRet")),
-            aliqIss: parsePct(g("aliqIss")),
-            vInssRet:
-              String(g("inss")).trim() === "" ? 0 : parseValor(g("inss")),
-            competencia: parseData(g("competencia")),
-            vencimento: parseData(g("vencimento")),
-            errors: [],
-            status: "fila",
-          };
-          if (
-            r.doc.length === 14
-              ? !validCNPJ(r.doc)
-              : r.doc.length === 11
-                ? !validCPF(r.doc)
-                : true
-          )
-            r.errors.push("CPF ou CNPJ do tomador inválido");
-          if (!r.nome) r.errors.push("Nome do tomador vazio");
-          if (r.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email))
-            r.errors.push("E-mail inválido");
-          if (!r.descricao) r.errors.push("Descrição do serviço vazia");
-          if (!(r.valor > 0)) r.errors.push("Valor deve ser maior que zero");
-          else r.valor = Math.round(r.valor * 100) / 100;
-          if (r.cServ.length !== 6)
-            r.errors.push(
-              "Código de serviço precisa ter 6 dígitos (ex.: 01.07.01)",
-            );
-          if (r.nbs && r.nbs.length !== 9)
-            r.errors.push("Código NBS precisa ter 9 dígitos (ex.: 1.1502.10.00)");
-          if (r.issRetido === null) {
-            r.errors.push('ISS retido deve ser "Sim" ou "Não"');
-            r.issRetido = false;
-          }
-          if (r.issRetido) {
-            if (r.aliqIss == null) r.aliqIss = S.empresa.aliqIss;
-            if (r.aliqIss == null)
-              r.errors.push("Informe a alíquota do ISS retido");
-            else if (!(r.aliqIss > 0 && r.aliqIss <= 5))
-              r.errors.push("Alíquota do ISS deve ser maior que 0% e até 5%");
-          }
-          r.aliqIss = r.issRetido && r.aliqIss > 0 ? cents(r.aliqIss) : null;
-          if (!(r.vInssRet >= 0)) {
-            r.errors.push("Valor do INSS retido inválido");
-            r.vInssRet = 0;
-          }
-          r.vInssRet = cents(r.vInssRet);
-          r.vIssRet =
-            r.aliqIss && r.valor > 0 ? cents((r.valor * r.aliqIss) / 100) : 0;
-          r.vLiq = r.valor > 0 ? cents(r.valor - r.vIssRet - r.vInssRet) : 0;
-          if (r.valor > 0 && r.vLiq <= 0)
-            r.errors.push("Retenções iguais ou maiores que o valor do serviço");
-          if (r.competencia === "invalida")
-            r.errors.push("Competência em formato desconhecido");
-          if (r.vencimento === "invalida")
-            r.errors.push("Vencimento em formato desconhecido");
-          if (!r.competencia) r.competencia = todayISO();
-          if (!r.vencimento)
-            r.vencimento = addDays(todayISO(), +S.empresa.vencDias || 10);
-          rows.push(r);
-        });
-        return { rows, faltando };
-      }
       async function lerArquivo(file) {
         if (typeof XLSX === "undefined") {
           toast("O leitor de planilhas não carregou. Recarregue a página.");
           return;
         }
+        let objs;
         try {
           const buf = await file.arrayBuffer();
-          const wb = XLSX.read(buf, { type: "array", cellDates: true });
+          // Datas do Excel saem como número serial; no CSV o texto vai como está, sem
+          // adivinhar se 01/11 é dia/mês ou mês/dia. Quem interpreta é o servidor.
+          const wb = XLSX.read(buf, { type: "array", raw: /\.csv$/i.test(file.name) });
           const ws = wb.Sheets[wb.SheetNames[0]];
-          const objs = XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
-          const { rows, faltando } = validarLinhas(objs);
-          if (faltando.length) {
-            const nomes = {
-              doc: "CPF/CNPJ do tomador",
-              nome: "nome do tomador",
-              descricao: "descrição",
-              valor: "valor",
-            };
-            batch = {
-              phase: "erro",
-              fileName: file.name,
-              msg: `Não encontrei as colunas: ${faltando.map((k) => nomes[k]).join(", ")}. Confira o cabeçalho ou use a planilha modelo.`,
-            };
-          } else if (!rows.length) {
-            batch = {
-              phase: "erro",
-              fileName: file.name,
-              msg: "A planilha não tem linhas preenchidas.",
-            };
-          } else batch = { phase: "preview", fileName: file.name, rows };
-          render();
+          objs = XLSX.utils.sheet_to_json(ws, { defval: "", raw: true });
         } catch (e) {
           batch = {
             phase: "erro",
@@ -2392,7 +2093,42 @@
             msg: "Não consegui ler esse arquivo. Envie um .xlsx ou .csv.",
           };
           render();
+          return;
         }
+        await conferirLinhas(objs, file.name);
+      }
+      async function conferirLinhas(objs, fileName) {
+        batch = { phase: "lendo", fileName };
+        redesenhar();
+        try {
+          const v = objs.length
+            ? await api("POST", "/lotes/validar", { linhas: objs })
+            : { rows: [], faltando: [] };
+          if (v.faltando.length)
+            batch = {
+              phase: "erro",
+              fileName,
+              msg: `Não encontrei as colunas: ${v.faltando.join(", ")}. Confira o cabeçalho ou use a planilha modelo.`,
+            };
+          else if (!v.rows.length)
+            batch = {
+              phase: "erro",
+              fileName,
+              msg: "A planilha não tem linhas preenchidas.",
+            };
+          else
+            batch = {
+              phase: "preview",
+              fileName,
+              rows: v.rows,
+              objs,
+              // a mesma chave em todo reenvio: clique duplo não cria dois lotes
+              chave: novaChave(),
+            };
+        } catch (e) {
+          batch = { phase: "erro", fileName, msg: e.message };
+        }
+        render();
       }
       function exemplo() {
         const nomes = [
@@ -2427,12 +2163,14 @@
           descricao: "Consultoria",
           valor: "500,00",
           codigo_servico: "01.07.01",
+          codigo_nbs: "1.1502.10.00",
+          iss_retido: "",
+          aliquota_iss: "",
+          valor_inss_retido: "",
           competencia: "",
           vencimento: "",
         });
-        const { rows } = validarLinhas(objs);
-        batch = { phase: "preview", fileName: "dados de exemplo", rows };
-        render();
+        conferirLinhas(objs, "dados de exemplo");
       }
       function baixarModelo() {
         if (typeof XLSX === "undefined") {
@@ -2499,7 +2237,7 @@
           [
             "aliquota_iss",
             "Se ISS retido",
-            "Alíquota do ISS para a retenção, ex.: 2,5. Vazio usa a alíquota padrão da empresa",
+            "Alíquota do ISS para a retenção, entre 1,8 e 5, ex.: 2,5. Vazio usa a alíquota padrão da empresa",
           ],
           [
             "valor_inss_retido",
@@ -2509,7 +2247,7 @@
           [
             "competencia",
             "Não",
-            "Data da prestação, ex.: 01/11/2026. Vazio usa a data da emissão",
+            "Data da prestação, ex.: 01/11/2026. Não pode ser futura. Vazio usa a data da emissão",
           ],
           [
             "vencimento",
@@ -2548,203 +2286,234 @@
           if (f) lerArquivo(f);
         });
       }
-      function rowStatus(r) {
-        if (r.errors.length) return '<span class="chip bad">Com erro</span>';
-        return {
-          fila:
-            batch.phase === "preview"
-              ? '<span class="chip neutral">Pronta</span>'
-              : '<span class="chip neutral">Na fila</span>',
-          enviando: '<span class="chip brand pulse">Enviando</span>',
-          autorizada: `<span class="chip ok">Autorizada nº ${r.numero}</span>`,
-        }[r.status];
+
+      async function emitirLote() {
+        const b = batch;
+        if (!b || b.phase !== "preview" || b.enviando) return;
+        b.enviando = true;
+        b.aviso = null;
+        redesenhar();
+        try {
+          const r = await api("POST", "/lotes", {
+            chave: b.chave,
+            arquivo: b.fileName,
+            linhas: b.objs,
+          });
+          batch = {
+            phase: "lote",
+            loteId: r.lote.id,
+            fileName: b.fileName,
+            resumo: r.lote,
+            notas: [],
+            ignoradas: b.rows.filter((x) => x.errors.length),
+          };
+          await atualizarLote(batch);
+          processarLote(batch);
+        } catch (e) {
+          b.enviando = false;
+          b.aviso = {
+            msg: e.message,
+            lista: (e.detalhes && e.detalhes.pendencias) || [],
+          };
+          if (batch === b && view === "lote") redesenhar();
+        }
       }
-      V.lote = () => {
-        if (!batch || batch.phase === "erro")
-          return `
+      async function atualizarLote(b) {
+        const r = await api("GET", `/lotes/${b.loteId}`);
+        b.resumo = r;
+        b.notas = r.notas;
+        b.fileName = b.fileName || r.arquivo;
+        if (batch === b && view === "lote") redesenhar();
+      }
+      // Cada chamada processa poucas notas e volta, para a tela andar nota a nota.
+      // O servidor guarda tudo: sair da tela ou fechar o navegador não perde o lote.
+      async function processarLote(b) {
+        if (b.rodando) return;
+        b.rodando = true;
+        b.aviso = null;
+        if (batch === b && view === "lote") redesenhar();
+        try {
+          for (;;) {
+            const r = await api("POST", `/lotes/${b.loteId}/processar?max=2`, {});
+            await atualizarLote(b);
+            if (!r.rodada.processadas || !r.pendentes) break;
+          }
+        } catch (e) {
+          b.aviso = { msg: e.message, lista: [] };
+        } finally {
+          b.rodando = false;
+        }
+        if (batch === b && view === "lote") redesenhar();
+        const c = b.resumo.contagem,
+          aut = c.autorizada || 0;
+        if (!b.resumo.pendentes && aut)
+          toast(`${aut} ${plural(aut, "nota autorizada", "notas autorizadas")}`);
+      }
+      async function abrirLote(id) {
+        batch = { phase: "lote", loteId: id, fileName: "", notas: [], ignoradas: [] };
+        try {
+          await atualizarLote(batch);
+        } catch (e) {
+          batch = null;
+          toast(e.message);
+        }
+        render();
+      }
+      async function reprocessarLote(b) {
+        await api("POST", `/lotes/${b.loteId}/reprocessar`, {});
+        await atualizarLote(b);
+        processarLote(b);
+      }
+
+      function telaInicialLote(lotes) {
+        return `
   <h1>Emitir notas em lote</h1>
   <p class="lead">As linhas são conferidas antes do envio. Cada nota autorizada gera um título em Contas a receber.</p>
   ${certAlerta()}
   ${batch && batch.phase === "erro" ? `<div class="banner bad"><b>${esc(batch.fileName)}</b>${esc(batch.msg)}</div>` : ""}
+  ${batch && batch.phase === "lendo" ? `<div class="banner"><b>${esc(batch.fileName)}</b>Conferindo as linhas…</div>` : ""}
   <label class="drop" id="drop" for="file">
     ${icon("upload")}<strong>Escolher planilha</strong><span class="muted">ou arraste o arquivo .xlsx ou .csv para cá</span>
     <input type="file" id="file" accept=".xlsx,.xls,.csv">
   </label>
   <div class="row" style="margin-top:14px">
     <button class="btn" data-action="modelo">Baixar planilha modelo</button>
-    <button class="btn" data-action="exemplo">Testar com dados de exemplo</button>
+    ${restrita() ? '<button class="btn" data-action="exemplo">Testar com dados de exemplo</button>' : ""}
   </div>
   <details><summary>Quais colunas a planilha precisa ter</summary>
     <p>Obrigatórias: <code>tomador_documento</code> (CPF ou CNPJ), <code>tomador_nome</code>, <code>descricao</code> e <code>valor</code>. Opcionais: <code>tomador_email</code>, <code>codigo_servico</code> (código de tributação nacional, 6 dígitos), <code>codigo_nbs</code> (9 dígitos), <code>iss_retido</code> (Sim ou Não), <code>aliquota_iss</code>, <code>valor_inss_retido</code>, <code>competencia</code> e <code>vencimento</code>.</p>
-    <p>Nomes parecidos também funcionam, como “CNPJ”, “Cliente” ou “Valor do serviço”. Sem código de serviço, NBS ou alíquota do ISS, uso o padrão definido em Dados da empresa. Com retenção, o título a receber fica com o valor líquido. Sem vencimento, uso ${+S.empresa.vencDias || 10} dias após a emissão.</p>
-  </details>`;
-        const ok = batch.rows.filter((r) => !r.errors.length),
-          bad = batch.rows.length - ok.length;
-        const total = ok.reduce((a, r) => a + r.valor, 0),
-          liquido = ok.reduce((a, r) => a + r.vLiq, 0);
-        const totTxt =
-          brl(total) +
-          (cents(liquido) !== cents(total) ? `, líquido de ${brl(liquido)}` : "");
-        const done = batch.rows.filter((r) => r.status === "autorizada").length;
-        let top = "";
-        if (batch.phase === "preview")
-          top =
-            certAlerta() +
-            `
-    <div class="spread"><div><h1>Conferir lote</h1><p class="lead" style="margin:0">${esc(batch.fileName)}: ${ok.length} nota${ok.length !== 1 ? "s" : ""} pronta${ok.length !== 1 ? "s" : ""}, total de ${totTxt}${bad ? `. ${bad} linha${bad > 1 ? "s" : ""} com erro ficará${bad > 1 ? "ão" : ""} de fora.` : "."}</p></div>
-    <div class="row"><button class="btn" data-action="trocar">Trocar planilha</button><button class="btn primary" data-action="emitir" ${ok.length ? "" : "disabled"}>Emitir ${ok.length} nota${ok.length !== 1 ? "s" : ""}</button></div></div>`;
-        else if (batch.phase === "emitting")
-          top = `
-    <h1>Emitindo lote</h1><p class="lead" style="margin:0"><span id="progTxt">${done} de ${ok.length} autorizadas</span>. Pode continuar usando o sistema.</p>
-    <div class="progress"><i id="prog" style="width:${ok.length ? (done / ok.length) * 100 : 0}%"></i></div>`;
-        else
-          top = `
-    <h1>Lote concluído</h1>
-    <div class="banner"><b>${done} nota${done !== 1 ? "s" : ""} autorizada${done !== 1 ? "s" : ""}, total de ${totTxt}</b>As contas a receber foram criadas com os vencimentos da planilha.${bad ? ` ${bad} linha${bad > 1 ? "s" : ""} com erro não ${bad > 1 ? "foram enviadas" : "foi enviada"}.` : ""}</div>
-    <div class="row" style="margin-bottom:18px"><button class="btn primary" data-action="nav" data-view="notas">Ver notas emitidas</button><button class="btn" data-action="trocar">Emitir outro lote</button></div>`;
-        return (
-          top +
-          `
+    <p>Nomes parecidos também funcionam, como “CNPJ”, “Cliente” ou “Valor do serviço”. Sem código de serviço, NBS ou alíquota do ISS, uso o padrão definido em Empresa e certificado. Com retenção, o título a receber fica com o valor líquido. Sem vencimento, uso ${(empresa && empresa.vencDias) || 10} dias após a emissão.</p>
+  </details>
+  ${
+    lotes && lotes.length
+      ? `<h2 style="margin-top:28px">Lotes enviados</h2>
   <div class="tablewrap cards"><table>
-    <thead><tr><th>Linha</th><th>Tomador</th><th>Serviço</th><th class="num">Valor</th><th class="num">Retenções</th><th>Vencimento</th><th>Situação</th></tr></thead>
-    <tbody>${batch.rows
+    <thead><tr><th>Enviado em</th><th>Arquivo</th><th class="num">Notas</th><th class="num">Valor</th><th>Situação</th><th></th></tr></thead>
+    <tbody>${lotes
       .map(
-        (r) => `<tr>
+        (l) => `<tr>
+      <td data-label="Enviado em">${fmtDateTime(l.criadoEm)}</td>
+      <td class="c-title">${esc(l.arquivo) || '<span class="muted">sem nome</span>'}</td>
+      <td class="num" data-label="Notas">${l.qtd}</td>
+      <td class="num" data-label="Valor">${brl(l.valorTotal)}</td>
+      <td data-label="Situação">${resumoChips(l)}</td>
+      <td class="c-actions"><div class="actions"><button class="link" data-action="abrirLote" data-id="${esc(l.id)}">Abrir</button></div></td>
+    </tr>`,
+      )
+      .join("")}</tbody>
+  </table></div>`
+      : ""
+  }`;
+      }
+      function resumoChips(l) {
+        const c = l.contagem || {};
+        const p = [];
+        if (c.autorizada) p.push(`<span class="chip ok">${c.autorizada} ${plural(c.autorizada, "autorizada")}</span>`);
+        if (c.cancelada) p.push(`<span class="chip neutral">${c.cancelada} ${plural(c.cancelada, "cancelada")}</span>`);
+        if (c.rejeitada) p.push(`<span class="chip bad">${c.rejeitada} ${plural(c.rejeitada, "rejeitada")}</span>`);
+        if (l.pendentes) p.push(`<span class="chip warn">${l.pendentes} ${plural(l.pendentes, "pendente")}</span>`);
+        return p.join(" ");
+      }
+      function avisoLote(a) {
+        if (!a) return "";
+        return `<div class="banner bad"><b>${esc(a.msg)}</b>${a.lista && a.lista.length ? `${a.lista.map(esc).join(" ")} <button class="link" data-action="nav" data-view="config">Abrir Empresa e certificado</button>` : ""}</div>`;
+      }
+      function linhaPreview(r) {
+        const st = r.errors.length
+          ? '<span class="chip bad">Com erro</span>'
+          : batch.enviando
+            ? '<span class="chip brand pulse">Enviando</span>'
+            : '<span class="chip neutral">Pronta</span>';
+        return `<tr>
       <td class="muted" data-label="Linha">${r.i}</td>
       <td class="c-title">${esc(r.nome) || '<span class="muted">sem nome</span>'}<span class="sub">${esc(fmtDoc(r.doc)) || "sem documento"}</span></td>
       <td data-label="Serviço">${esc(r.descricao)}<span class="sub">${fmtServ(r.cServ)}${r.nbs ? ` · NBS ${fmtNBS(r.nbs)}` : ""}</span></td>
       <td class="num" data-label="Valor">${r.valor > 0 ? brl(r.valor) : "—"}</td>
       <td class="num" data-label="Retenções">${retencoes(r).length ? `${retencoes(r).join("<br>")}<span class="sub">líquido ${brl(r.vLiq)}</span>` : '<span class="muted">—</span>'}</td>
       <td data-label="Vencimento">${fmtDate(r.vencimento)}</td>
-      <td id="st-${r.i}" data-label="Situação">${rowStatus(r)}${r.errors.length ? `<ul class="errlist">${r.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}</td>
-    </tr>`,
-      )
-      .join("")}</tbody>
-  </table></div>`
+      <td data-label="Situação">${st}${r.errors.length ? `<ul class="errlist">${r.errors.map((e) => `<li>${esc(e)}</li>`).join("")}</ul>` : ""}</td>
+    </tr>`;
+      }
+      function linhaNota(n) {
+        return `<tr>
+      <td class="muted" data-label="Linha">${n.linha ?? ""}</td>
+      <td class="c-title">${esc(n.tomador.nome)}<span class="sub">${esc(fmtDoc(n.tomador.doc))}</span></td>
+      <td data-label="Serviço">${esc(n.descricao)}<span class="sub">${fmtServ(n.cServ)}${n.nbs ? ` · NBS ${fmtNBS(n.nbs)}` : ""} · DPS ${n.nDPS}</span></td>
+      <td class="num" data-label="Valor">${brl(n.valor)}</td>
+      <td class="num" data-label="Retenções">${retencoes(n).length ? `${retencoes(n).join("<br>")}<span class="sub">líquido ${brl(n.vLiq)}</span>` : '<span class="muted">—</span>'}</td>
+      <td data-label="Vencimento">${fmtDate(n.vencimento)}</td>
+      <td data-label="Situação">${chipNota(n)}${detalheNota(n)}</td>
+    </tr>`;
+      }
+      const CAB_LOTE =
+        '<thead><tr><th>Linha</th><th>Tomador</th><th>Serviço</th><th class="num">Valor</th><th class="num">Retenções</th><th>Vencimento</th><th>Situação</th></tr></thead>';
+
+      V.lote = (lotes) => {
+        if (!batch || batch.phase === "erro" || batch.phase === "lendo")
+          return telaInicialLote(lotes);
+        if (batch.phase === "preview") {
+          const ok = batch.rows.filter((r) => !r.errors.length),
+            bad = batch.rows.length - ok.length;
+          const total = ok.reduce((a, r) => a + r.valor, 0),
+            liquido = ok.reduce((a, r) => a + r.vLiq, 0);
+          const totTxt =
+            brl(total) +
+            (Math.round(liquido * 100) !== Math.round(total * 100)
+              ? `, líquido de ${brl(liquido)}`
+              : "");
+          return `
+    ${certAlerta()}
+    ${avisoLote(batch.aviso)}
+    <div class="spread"><div><h1>Conferir lote</h1><p class="lead" style="margin:0">${esc(batch.fileName)}: ${ok.length} ${plural(ok.length, "nota pronta", "notas prontas")}, total de ${totTxt}${bad ? `. ${bad} ${plural(bad, "linha")} com erro ${bad > 1 ? "ficarão" : "ficará"} de fora.` : "."}</p></div>
+    <div class="row"><button class="btn" data-action="trocar" ${batch.enviando ? "disabled" : ""}>Trocar planilha</button><button class="btn primary" data-action="emitir" ${ok.length && !batch.enviando ? "" : "disabled"}>${batch.enviando ? "Criando lote…" : `Emitir ${ok.length} ${plural(ok.length, "nota")}`}</button></div></div>
+    ${restrita() ? '<p class="muted" style="font-size:13px">Ambiente de produção restrita: as notas vão para a Sefin de testes e não têm valor fiscal.</p>' : ""}
+    <div class="tablewrap cards"><table>${CAB_LOTE}<tbody>${batch.rows.map(linhaPreview).join("")}</tbody></table></div>`;
+        }
+
+        // lote criado: o que vale é o que está no servidor
+        const r = batch.resumo,
+          c = r.contagem || {},
+          aut = c.autorizada || 0,
+          rej = c.rejeitada || 0,
+          esperando = batch.notas.filter((n) => n.status === "verificar").length,
+          feitas = r.qtd - r.pendentes;
+        const totAut = batch.notas
+          .filter((n) => n.status === "autorizada")
+          .reduce((a, n) => a + n.valor, 0);
+        let top;
+        if (batch.rodando)
+          top = `
+    <h1>Emitindo lote</h1><p class="lead" style="margin:0">${feitas} de ${r.qtd} ${plural(r.qtd, "processada")}, ${aut} ${plural(aut, "autorizada")}. Pode continuar usando o sistema.</p>
+    <div class="progress"><i style="width:${r.qtd ? (feitas / r.qtd) * 100 : 0}%"></i></div>`;
+        else
+          top = `
+    <h1>${r.pendentes ? "Lote em andamento" : "Lote concluído"}</h1>
+    <div class="banner"><b>${aut} ${plural(aut, "nota autorizada", "notas autorizadas")}, total de ${brl(totAut)}</b>${aut ? "As contas a receber foram criadas com os vencimentos da planilha." : ""}${batch.ignoradas.length ? ` ${batch.ignoradas.length} ${plural(batch.ignoradas.length, "linha")} com erro não ${batch.ignoradas.length > 1 ? "foram enviadas" : "foi enviada"}.` : ""}</div>
+    ${rej ? `<div class="banner bad"><b>${rej} ${plural(rej, "nota rejeitada", "notas rejeitadas")}</b>Veja o motivo em cada linha. Corrija a configuração, se for o caso, e reprocesse: o número da DPS é o mesmo.</div>` : ""}
+    ${esperando ? `<div class="banner"><b>${esperando} ${plural(esperando, "nota aguardando", "notas aguardando")} confirmação da Sefin</b>A resposta não chegou. Antes de reenviar, o sistema consulta a Sefin, então não há risco de nota em dobro.</div>` : ""}
+    <div class="row" style="margin-bottom:18px">
+      ${aut ? '<button class="btn primary" data-action="nav" data-view="notas">Ver notas emitidas</button>' : ""}
+      ${rej || batch.notas.some((n) => n.status === "verificar" && !n.proximaTentativaEm) ? '<button class="btn" data-action="reprocessar">Reprocessar rejeitadas</button>' : ""}
+      ${r.pendentes ? '<button class="btn" data-action="continuarLote">Verificar agora</button>' : ""}
+      <button class="btn" data-action="trocar">Emitir outro lote</button>
+    </div>`;
+        return (
+          avisoLote(batch.aviso) +
+          top +
+          `<div class="tablewrap cards"><table>${CAB_LOTE}<tbody>${batch.notas.map(linhaNota).join("")}${batch.ignoradas.map(linhaPreview).join("")}</tbody></table></div>`
         );
       };
 
-      function gerarChave(numero) {
-        const e = S.empresa;
-        const now = new Date();
-        const base =
-          e.ibge +
-          "2" +
-          "2" +
-          digits(e.cnpj).padStart(14, "0") +
-          String(numero).padStart(13, "0") +
-          String(now.getFullYear()).slice(2) +
-          pad(now.getMonth() + 1) +
-          String(Math.floor(Math.random() * 1e9)).padStart(9, "0");
-        let t = 0,
-          p = 2;
-        for (let i = base.length - 1; i >= 0; i--) {
-          t += +base[i] * p;
-          p = p === 9 ? 2 : p + 1;
-        }
-        const r = t % 11;
-        return base + (r < 2 ? 0 : 11 - r);
-      }
-      function retencoes(x) {
-        const p = [];
-        if (x.vIssRet) p.push(`ISS ${brl(x.vIssRet)} (${fmtPct(x.aliqIss)})`);
-        if (x.vInssRet) p.push(`INSS ${brl(x.vInssRet)}`);
-        return p;
-      }
-      function criarNota(r, loteId) {
-        const e = S.empresa;
-        const nDPS = e.proxDPS++;
-        const numero = e.proxNFSe++;
-        const nota = {
-          id: uid(),
-          numero,
-          nDPS,
-          serie: e.serie,
-          chave: gerarChave(numero),
-          dhEmi: new Date().toISOString(),
-          competencia: r.competencia,
-          tomador: { doc: r.doc, nome: r.nome, email: r.email },
-          descricao: r.descricao,
-          cServ: r.cServ,
-          nbs: r.nbs,
-          valor: r.valor,
-          issRetido: r.issRetido,
-          aliqIss: r.aliqIss,
-          vIssRet: r.vIssRet,
-          vInssRet: r.vInssRet,
-          vLiq: r.vLiq,
-          status: "autorizada",
-          loteId,
-        };
-        S.notas.unshift(nota);
-        S.receber.unshift({
-          id: uid(),
-          notaId: nota.id,
-          descricao: `NFS-e nº ${numero}`,
-          cliente: r.nome,
-          valor: r.vLiq,
-          venc: r.vencimento,
-          recebidoEm: null,
-        });
-        save();
-        return nota;
-      }
-      async function emitirLote() {
-        const ok = batch.rows.filter((r) => !r.errors.length);
-        if (!ok.length) return;
-        const b = batch;
-        b.phase = "emitting";
-        render();
-        const loteId = uid();
-        let done = 0;
-        for (const r of ok) {
-          r.status = "enviando";
-          upd(b, r);
-          await sleep(380 + Math.random() * 320);
-          const n = criarNota(r, loteId);
-          r.numero = n.numero;
-          r.status = "autorizada";
-          done++;
-          upd(b, r);
-          const p = document.getElementById("prog"),
-            pt = document.getElementById("progTxt");
-          if (batch === b && view === "lote") {
-            if (p) p.style.width = (done / ok.length) * 100 + "%";
-            if (pt) pt.textContent = `${done} de ${ok.length} autorizadas`;
-          }
-        }
-        S.lotes.unshift({
-          id: loteId,
-          data: new Date().toISOString(),
-          qtd: done,
-          total: ok.reduce((a, r) => a + r.valor, 0),
-        });
-        save();
-        b.phase = "done";
-        if (view === "lote" && batch === b) render();
-        else renderShell();
-        toast(
-          `${done} nota${done !== 1 ? "s" : ""} emitida${done !== 1 ? "s" : ""}`,
-        );
-      }
-      function upd(b, r) {
-        if (batch !== b || view !== "lote") return;
-        const el = document.getElementById("st-" + r.i);
-        if (el) el.innerHTML = rowStatus(r);
-      }
-
       /* --- notas --- */
-      function notasFiltradas(ym, st) {
-        return S.notas.filter(
-          (n) =>
-            n.competencia.slice(0, 7) === ym &&
-            (st === "todas" || n.status === st),
-        );
-      }
-      V.notas = () => {
-        const list = notasFiltradas(F.notasMes, F.notasStatus);
+      const chipEmitida = (n) =>
+        n.status === "autorizada"
+          ? '<span class="chip ok">Autorizada</span>'
+          : n.status === "cancelamento_pendente"
+            ? '<span class="chip warn">Cancelamento pendente</span>'
+            : '<span class="chip bad">Cancelada</span>';
+      V.notas = (list) => {
         const tot = list
-          .filter((n) => n.status === "autorizada")
+          .filter((n) => n.status !== "cancelada")
           .reduce((a, n) => a + n.valor, 0);
         return `
   <div class="spread"><h1>Notas emitidas</h1>
@@ -2771,127 +2540,76 @@
     <tbody>${list
       .map(
         (n) => `<tr>
-      <td data-label="Nº"><b>${n.numero}</b></td><td data-label="Emissão">${fmtDateTime(n.dhEmi)}</td>
-      <td class="c-title">${esc(n.tomador.nome)}<span class="sub">${fmtDoc(n.tomador.doc)}</span></td>
+      <td data-label="Nº"><b>${esc(n.numero)}</b></td><td data-label="Emissão">${fmtDateTime(n.dhProc || n.dhEmi)}</td>
+      <td class="c-title">${esc(n.tomador.nome)}<span class="sub">${esc(fmtDoc(n.tomador.doc))}</span></td>
       <td class="num" data-label="Valor">${brl(n.valor)}</td>
-      <td data-label="Situação">${n.status === "autorizada" ? '<span class="chip ok">Autorizada</span>' : '<span class="chip bad">Cancelada</span>'}</td>
-      <td class="c-actions"><div class="actions"><button class="link" data-action="ver" data-id="${n.id}">Ver</button><button class="link" data-action="xml" data-id="${n.id}">XML</button>${isEmp() && n.status === "autorizada" ? `<button class="link bad" data-action="cancelar" data-id="${n.id}">Cancelar</button>` : ""}</div></td>
+      <td data-label="Situação">${chipEmitida(n)}${n.status === "autorizada" && n.erro ? `<span class="sub">${esc(n.erro.mensagem)}</span>` : ""}</td>
+      <td class="c-actions"><div class="actions"><button class="link" data-action="ver" data-id="${esc(n.id)}">Ver</button><button class="link" data-action="xml" data-id="${esc(n.id)}">XML</button>${isEmp() && n.status === "autorizada" ? `<button class="link bad" data-action="cancelar" data-id="${esc(n.id)}">Cancelar</button>` : ""}${isEmp() && n.status === "cancelamento_pendente" ? `<button class="link" data-action="verificarCanc" data-id="${esc(n.id)}">Verificar cancelamento</button>` : ""}</div></td>
     </tr>`,
       )
       .join("")}</tbody>
-    <tfoot><tr><td colspan="3">${list.length} nota${list.length !== 1 ? "s" : ""}</td><td class="num">${brl(tot)}</td><td colspan="2"></td></tr></tfoot>
+    <tfoot><tr><td colspan="3">${list.length} ${plural(list.length, "nota")}</td><td class="num">${brl(tot)}</td><td colspan="2"></td></tr></tfoot>
   </table></div>`
       : `<div class="panel"><p class="empty" style="margin:0">Nenhuma nota em ${monthLabel(F.notasMes).toLowerCase()}.${isEmp() ? ' <button class="link" data-action="nav" data-view="lote">Emitir um lote</button>' : ""}</p></div>`
   }`;
       };
-      function verNota(id) {
-        const n = S.notas.find((x) => x.id === id);
-        if (!n) return;
-        const e = S.empresa;
+      const MOTIVOS = [
+        ["1", "Erro na emissão"],
+        ["2", "Serviço não prestado"],
+        ["9", "Outros"],
+      ];
+      async function verNota(id) {
+        const n = await api("GET", `/notas/${encodeURIComponent(id)}`);
+        const e = empresa;
+        const canc = n.cancelamento;
         openModal(`
   <div class="doc">
-    <header><b>NFS-e nº ${n.numero}</b><span>Documento auxiliar da nota fiscal de serviço eletrônica</span></header>
-    <section class="stampnote">Simulação de homologação. Sem validade fiscal.</section>
-    ${n.status === "cancelada" ? `<section class="cancelled">Nota cancelada. Motivo: ${esc(n.motivoCanc)}</section>` : ""}
-    <section><h3>Prestador</h3>${esc(e.razao)}<br>CNPJ ${fmtDoc(e.cnpj)}${e.im ? `, IM ${esc(e.im)}` : ""}<br>Jaraguá do Sul/SC, optante pelo Simples Nacional</section>
-    <section><h3>Tomador</h3>${esc(n.tomador.nome)}<br>${n.tomador.doc.length === 14 ? "CNPJ" : "CPF"} ${fmtDoc(n.tomador.doc)}${n.tomador.email ? `<br>${esc(n.tomador.email)}` : ""}</section>
+    <header><b>NFS-e nº ${esc(n.numero)}</b><span>Resumo da nota fiscal de serviço eletrônica. Não substitui o DANFSe.</span></header>
+    ${restrita() ? '<section class="stampnote">Produção restrita. Sem validade fiscal.</section>' : ""}
+    ${n.status === "cancelada" ? `<section class="cancelled">Nota cancelada em ${fmtDateTime(canc && canc.dhCanc)}. Motivo: ${esc(canc && canc.xMotivo)}</section>` : ""}
+    ${n.status === "cancelamento_pendente" ? `<section class="cancelled">Cancelamento pedido e aguardando confirmação da Sefin. Motivo: ${esc(canc && canc.xMotivo)}</section>` : ""}
+    <section><h3>Prestador</h3>${esc(e.razao)}<br>CNPJ ${esc(fmtDoc(e.cnpj))}${e.im ? `, IM ${esc(e.im)}` : ""}<br>Jaraguá do Sul/SC, optante pelo Simples Nacional</section>
+    <section><h3>Tomador</h3>${esc(n.tomador.nome)}<br>${n.tomador.doc.length === 14 ? "CNPJ" : "CPF"} ${esc(fmtDoc(n.tomador.doc))}${n.tomador.email ? `<br>${esc(n.tomador.email)}` : ""}</section>
     <section><h3>Serviço</h3>${esc(n.descricao)}<br><span class="muted">Código de tributação nacional ${fmtServ(n.cServ)}${n.nbs ? `, NBS ${fmtNBS(n.nbs)}` : ""}</span></section>
-    <section><h3>Datas</h3>Emissão ${fmtDateTime(n.dhEmi)}, competência ${fmtDate(n.competencia)}, DPS série ${esc(n.serie)} nº ${n.nDPS}</section>
+    <section><h3>Datas</h3>Processada em ${fmtDateTime(n.dhProc)}, competência ${fmtDate(n.competencia)}, DPS série ${esc(n.serie)} nº ${n.nDPS}</section>
     <section class="total"><span>Valor do serviço</span><strong>${brl(n.valor)}</strong></section>
     ${
       n.vIssRet || n.vInssRet
         ? `<section><h3>Retenções</h3>${n.vIssRet ? `ISS retido pelo tomador, alíquota ${fmtPct(n.aliqIss)}: ${brl(n.vIssRet)}<br>` : ""}${n.vInssRet ? `INSS retido: ${brl(n.vInssRet)}<br>` : ""}<b>Valor líquido: ${brl(n.vLiq)}</b></section>`
         : ""
     }
-    <section><h3>Chave de acesso</h3><span class="key">${n.chave}</span></section>
+    <section><h3>Chave de acesso</h3><span class="key">${esc(n.chaveAcesso)}</span></section>
   </div>
-  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="xml" data-id="${n.id}">Baixar XML</button><button class="btn primary" data-action="fechar">Fechar</button></div>`);
+  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="xml" data-id="${esc(n.id)}">Baixar XML</button><button class="btn primary" data-action="fechar">Fechar</button></div>`);
       }
-      function pedirCancelamento(id) {
-        const n = S.notas.find((x) => x.id === id);
-        if (!n) return;
-        const t = S.receber.find((x) => x.notaId === id);
-        openModal(`<h2>Cancelar NFS-e nº ${n.numero}</h2>
-  <p class="muted">${esc(n.tomador.nome)}, ${brl(n.valor)}. ${t && t.recebidoEm ? "Este valor já foi recebido, então o título continuará no financeiro." : "O título a receber desta nota será removido."}</p>
-  <div class="field"><label for="motivo">Motivo do cancelamento</label><input id="motivo" placeholder="Ex.: erro no valor do serviço" maxlength="255"></div>
-  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="confirmaCancel" data-id="${id}">Cancelar nota</button></div>`);
+      async function pedirCancelamento(id) {
+        const n = await api("GET", `/notas/${encodeURIComponent(id)}`);
+        openModal(`<h2>Cancelar NFS-e nº ${esc(n.numero)}</h2>
+  <p class="muted">${esc(n.tomador.nome)}, ${brl(n.valor)}. O pedido vai para a Sefin, que pode recusar conforme as regras do município. Se o valor ainda não foi recebido, o título a receber desta nota será removido.</p>
+  <div class="field"><label for="cMotivo">Motivo</label><select id="cMotivo">${MOTIVOS.map(([v, l]) => `<option value="${v}">${l}</option>`).join("")}</select></div>
+  <div class="field" style="margin-top:12px"><label for="motivo">Descrição do motivo</label><input id="motivo" placeholder="Ex.: erro no valor do serviço" minlength="15" maxlength="255"></div>
+  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="confirmaCancel" data-id="${esc(id)}">Cancelar nota</button></div>`);
       }
-      function confirmaCancel(id) {
-        const m = (document.getElementById("motivo").value || "").trim();
-        if (m.length < 15) {
+      async function confirmaCancel(id) {
+        const xMotivo = (document.getElementById("motivo").value || "").trim();
+        if (xMotivo.length < 15) {
           toast("Descreva o motivo com pelo menos 15 caracteres.");
           return;
         }
-        const n = S.notas.find((x) => x.id === id);
-        n.status = "cancelada";
-        n.motivoCanc = m;
-        n.dhCanc = new Date().toISOString();
-        S.receber = S.receber.filter(
-          (t) => !(t.notaId === id && !t.recebidoEm),
-        );
-        save();
+        const cMotivo = document.getElementById("cMotivo").value;
+        const r = await api("POST", `/notas/${encodeURIComponent(id)}/cancelar`, { cMotivo, xMotivo });
         closeModal();
         render();
-        toast(`NFS-e nº ${n.numero} cancelada`);
+        toast(r.mensagem);
       }
-      const xe = (s) => esc(s);
-      function xmlNota(n) {
-        const e = S.empresa,
-          tag = n.tomador.doc.length === 14 ? "CNPJ" : "CPF";
-        const vIss = n.vIssRet || 0,
-          vInss = n.vInssRet || 0,
-          vLiq = n.vLiq ?? n.valor;
-        return `<?xml version="1.0" encoding="UTF-8"?>
-<!-- Arquivo gerado em simulação de homologação. Sem validade fiscal. -->
-<NFSe xmlns="http://www.sped.fazenda.gov.br/nfse" versao="1.00">
-  <infNFSe Id="NFS${n.chave}">
-    <xLocEmi>Jaraguá do Sul</xLocEmi>
-    <xLocPrestacao>Jaraguá do Sul</xLocPrestacao>
-    <nNFSe>${n.numero}</nNFSe>
-    <cLocIncid>${e.ibge}</cLocIncid>
-    <ambGer>2</ambGer>
-    <dhProc>${n.dhEmi}</dhProc>
-    <cStat>${n.status === "cancelada" ? "101" : "100"}</cStat>
-    <valores>${n.issRetido ? `\n      <vBC>${n.valor.toFixed(2)}</vBC>\n      <pAliqAplic>${n.aliqIss.toFixed(2)}</pAliqAplic>\n      <vISSQN>${vIss.toFixed(2)}</vISSQN>` : ""}
-      <vTotalRet>${(vIss + vInss).toFixed(2)}</vTotalRet>
-      <vLiq>${vLiq.toFixed(2)}</vLiq>
-    </valores>
-    <DPS versao="1.00">
-      <infDPS Id="DPS${e.ibge}2${digits(e.cnpj)}${String(e.serie).padStart(5, "0")}${String(n.nDPS).padStart(15, "0")}">
-        <tpAmb>2</tpAmb>
-        <dhEmi>${n.dhEmi}</dhEmi>
-        <serie>${xe(n.serie)}</serie>
-        <nDPS>${n.nDPS}</nDPS>
-        <dCompet>${n.competencia}</dCompet>
-        <tpEmit>1</tpEmit>
-        <cLocEmi>${e.ibge}</cLocEmi>
-        <prest>
-          <CNPJ>${digits(e.cnpj)}</CNPJ>${e.im ? `\n          <IM>${xe(e.im)}</IM>` : ""}
-          <regTrib><opSimpNac>3</opSimpNac><regEspTrib>0</regEspTrib></regTrib>
-        </prest>
-        <toma>
-          <${tag}>${n.tomador.doc}</${tag}>
-          <xNome>${xe(n.tomador.nome)}</xNome>${n.tomador.email ? `\n          <email>${xe(n.tomador.email)}</email>` : ""}
-        </toma>
-        <serv>
-          <locPrest><cLocPrestacao>${e.ibge}</cLocPrestacao></locPrest>
-          <cServ><cTribNac>${n.cServ}</cTribNac><xDescServ>${xe(n.descricao)}</xDescServ>${n.nbs ? `<cNBS>${n.nbs}</cNBS>` : ""}</cServ>
-        </serv>
-        <valores>
-          <vServPrest><vServ>${n.valor.toFixed(2)}</vServ></vServPrest>
-          <trib>
-            <tribMun><tribISSQN>1</tribISSQN>${n.issRetido ? `<pAliq>${n.aliqIss.toFixed(2)}</pAliq><tpRetISSQN>2</tpRetISSQN>` : "<tpRetISSQN>1</tpRetISSQN>"}</tribMun>${vInss ? `\n            <tribFed><vRetCP>${vInss.toFixed(2)}</vRetCP></tribFed>` : ""}
-            <totTrib><indTotTrib>0</indTotTrib></totTrib>
-          </trib>
-        </valores>
-      </infDPS>
-    </DPS>
-  </infNFSe>
-</NFSe>`;
+      async function verificarCanc(id) {
+        const r = await api("POST", `/notas/${encodeURIComponent(id)}/cancelar`, {});
+        render();
+        toast(r.mensagem);
       }
-      async function zipNotas(list, nome) {
-        if (!list.length) {
-          toast("Nenhuma nota nesse período.");
+      async function zipArquivos(arquivos, nome) {
+        if (!arquivos.length) {
+          toast("Nenhum XML para baixar.");
           return;
         }
         if (typeof JSZip === "undefined") {
@@ -2899,25 +2617,13 @@
           return;
         }
         const z = new JSZip();
-        list.forEach((n) =>
-          z.file(
-            `NFSe-${n.numero}${n.status === "cancelada" ? "-cancelada" : ""}.xml`,
-            xmlNota(n),
-          ),
-        );
+        arquivos.forEach((a) => z.file(a.nome, a.xml));
         baixar(nome, await z.generateAsync({ type: "blob" }));
       }
 
       /* --- receber --- */
-      V.receber = () => {
+      V.receber = (list) => {
         const f = F.receber;
-        const list = S.receber
-          .filter(
-            (t) =>
-              f === "todos" ||
-              (f === "abertos" ? !t.recebidoEm : stReceber(t) === f),
-          )
-          .sort((a, b) => a.venc.localeCompare(b.venc));
         const tot = list.reduce((a, t) => a + t.valor, 0);
         return `
   <div class="spread"><h1>Contas a receber</h1>
@@ -2944,11 +2650,11 @@
         return `<tr>
       <td data-label="Vencimento">${fmtDate(t.venc)}</td><td class="c-title">${esc(t.cliente)}</td><td data-label="Origem">${esc(t.descricao)}</td><td class="num" data-label="Valor">${brl(t.valor)}</td>
       <td data-label="Situação">${chipFin(s)}${t.recebidoEm ? `<span class="sub">em ${fmtDate(t.recebidoEm)}</span>` : ""}</td>
-      ${isEmp() ? `<td class="c-actions"><div class="actions">${t.recebidoEm ? `<button class="link" data-action="desfazRec" data-id="${t.id}">Desfazer</button>` : `<button class="link" data-action="receber" data-id="${t.id}">Marcar recebido</button>`}</div></td>` : ""}
+      ${isEmp() ? `<td class="c-actions"><div class="actions">${t.recebidoEm ? `<button class="link" data-action="desfazRec" data-id="${esc(t.id)}">Desfazer</button>` : `<button class="link" data-action="receber" data-id="${esc(t.id)}">Marcar recebido</button>`}</div></td>` : ""}
     </tr>`;
       })
       .join("")}</tbody>
-    <tfoot><tr><td colspan="3">${list.length} título${list.length !== 1 ? "s" : ""}</td><td class="num">${brl(tot)}</td><td colspan="${isEmp() ? 2 : 1}"></td></tr></tfoot>
+    <tfoot><tr><td colspan="3">${list.length} ${plural(list.length, "título")}</td><td class="num">${brl(tot)}</td><td colspan="${isEmp() ? 2 : 1}"></td></tr></tfoot>
   </table></div>`
       : '<div class="panel"><p class="empty" style="margin:0">Nenhum título nesse filtro.</p></div>'
   }`;
@@ -2963,24 +2669,18 @@
         "Serviços e assinaturas",
         "Outros",
       ];
-      V.pagar = () => {
+      V.pagar = (list) => {
         const f = F.pagar;
-        const list = S.pagar
-          .filter(
-            (t) =>
-              f === "todos" || (f === "abertos" ? !t.pagoEm : stPagar(t) === f),
-          )
-          .sort((a, b) => a.venc.localeCompare(b.venc));
         const tot = list.reduce((a, t) => a + t.valor, 0);
         return `
   <h1>Contas a pagar</h1>
-  
+
   ${
     isEmp()
       ? `<div class="panel" style="margin-bottom:18px"><h2>Nova conta</h2>
     <div class="form">
-      <div class="field"><label for="pDesc">Descrição</label><input id="pDesc" placeholder="Ex.: Aluguel da sala"></div>
-      <div class="field"><label for="pForn">Fornecedor</label><input id="pForn"></div>
+      <div class="field"><label for="pDesc">Descrição</label><input id="pDesc" placeholder="Ex.: Aluguel da sala" maxlength="200"></div>
+      <div class="field"><label for="pForn">Fornecedor</label><input id="pForn" maxlength="150"></div>
       <div class="field"><label for="pCat">Categoria</label><select id="pCat">${CATS.map((c) => `<option>${c}</option>`).join("")}</select></div>
       <div class="field"><label for="pVal">Valor (R$)</label><input id="pVal" inputmode="decimal" placeholder="0,00"></div>
       <div class="field"><label for="pVenc">Vencimento</label><input id="pVenc" type="date" value="${todayISO()}"></div>
@@ -3013,26 +2713,24 @@
         return `<tr>
       <td data-label="Vencimento">${fmtDate(t.venc)}</td><td class="c-title">${esc(t.descricao)}<span class="sub">${esc(t.fornecedor || "")}${t.recorrente ? (t.fornecedor ? ", " : "") + "mensal" : ""}</span></td><td data-label="Categoria">${esc(t.categoria)}</td><td class="num" data-label="Valor">${brl(t.valor)}</td>
       <td data-label="Situação">${chipFin(s)}${t.pagoEm ? `<span class="sub">em ${fmtDate(t.pagoEm)}</span>` : ""}</td>
-      ${isEmp() ? `<td class="c-actions"><div class="actions">${t.pagoEm ? `<button class="link" data-action="desfazPag" data-id="${t.id}">Desfazer</button>` : `<button class="link" data-action="pagar" data-id="${t.id}">Marcar paga</button>`}<button class="link bad" data-action="delPagar" data-id="${t.id}">Excluir</button></div></td>` : ""}
+      ${isEmp() ? `<td class="c-actions"><div class="actions">${t.pagoEm ? `<button class="link" data-action="desfazPag" data-id="${esc(t.id)}">Desfazer</button>` : `<button class="link" data-action="pagar" data-id="${esc(t.id)}">Marcar paga</button>`}<button class="link bad" data-action="delPagar" data-id="${esc(t.id)}">Excluir</button></div></td>` : ""}
     </tr>`;
       })
       .join("")}</tbody>
-    <tfoot><tr><td colspan="3">${list.length} conta${list.length !== 1 ? "s" : ""}</td><td class="num">${brl(tot)}</td><td colspan="${isEmp() ? 2 : 1}"></td></tr></tfoot>
+    <tfoot><tr><td colspan="3">${list.length} ${plural(list.length, "conta")}</td><td class="num">${brl(tot)}</td><td colspan="${isEmp() ? 2 : 1}"></td></tr></tfoot>
   </table></div>`
       : '<div class="panel"><p class="empty" style="margin:0">Nenhuma conta nesse filtro.</p></div>'
   }`;
       };
-      function addPagar() {
+      async function addPagar() {
         const g = (id) => document.getElementById(id);
         const t = {
-          id: uid(),
           descricao: g("pDesc").value.trim(),
           fornecedor: g("pForn").value.trim(),
           categoria: g("pCat").value,
-          valor: Math.round(parseValor(g("pVal").value) * 100) / 100,
+          valor: Math.round(parseNum(g("pVal").value) * 100) / 100,
           venc: g("pVenc").value,
           recorrente: g("pRec").checked,
-          pagoEm: null,
         };
         if (!t.descricao) {
           toast("Informe a descrição da conta.");
@@ -3048,178 +2746,54 @@
           toast("Informe o vencimento.");
           return;
         }
-        S.pagar.push(t);
-        save();
+        await api("POST", "/pagar", t);
         render();
         toast("Conta adicionada");
       }
-      function marcarPaga(id) {
-        const t = S.pagar.find((x) => x.id === id);
-        if (!t) return;
-        t.pagoEm = todayISO();
-        if (t.recorrente && !t.proxGerada) {
-          t.proxGerada = true;
-          S.pagar.push({
-            ...t,
-            id: uid(),
-            venc: addMonths(t.venc, 1),
-            pagoEm: null,
-            proxGerada: false,
-          });
-          toast(`Paga. Próxima criada para ${fmtDate(addMonths(t.venc, 1))}`);
-        } else toast("Conta marcada como paga");
-        save();
+      async function marcarPaga(id) {
+        const r = await api("POST", `/pagar/${encodeURIComponent(id)}/pago`, {});
         render();
+        toast(r.proxima ? `Paga. Próxima criada para ${fmtDate(r.proxima)}` : "Conta marcada como paga");
       }
 
       /* --- exportar --- */
-      V.exportar = () => {
+      V.exportar = (x) => {
         const ym = F.expMes;
-        const notas = S.notas.filter((n) => n.competencia.slice(0, 7) === ym);
-        const aut = notas.filter((n) => n.status === "autorizada");
-        const rec = S.receber.filter(
-          (t) => (t.recebidoEm || "").slice(0, 7) === ym,
-        );
-        const pag = S.pagar.filter((t) => (t.pagoEm || "").slice(0, 7) === ym);
         return `
   <h1>Arquivos do mês</h1>
   <div class="filters" style="margin-bottom:18px"><div class="field"><label for="fe">Competência</label><input type="month" id="fe" data-filter="expMes" value="${ym}"></div></div>
   <div class="summary">
-    <div><span>Notas autorizadas</span><strong>${aut.length}</strong></div>
-    <div><span>Faturamento</span><strong>${brl(aut.reduce((a, n) => a + n.valor, 0))}</strong></div>
-    <div><span>Recebido no mês</span><strong>${brl(rec.reduce((a, t) => a + t.valor, 0))}</strong></div>
-    <div><span>Pago no mês</span><strong>${brl(pag.reduce((a, t) => a + t.valor, 0))}</strong></div>
+    <div><span>Notas autorizadas</span><strong>${x.notasAutorizadas}</strong></div>
+    <div><span>Faturamento</span><strong>${brl(x.faturamento)}</strong></div>
+    <div><span>Recebido no mês</span><strong>${brl(x.recebido)}</strong></div>
+    <div><span>Pago no mês</span><strong>${brl(x.pago)}</strong></div>
   </div>
   <div class="tablewrap"><table><tbody>
-    <tr><td><b>XMLs das notas</b><span class="sub">${notas.length} arquivo${notas.length !== 1 ? "s" : ""}, incluindo canceladas</span></td><td class="num"><button class="btn small" data-action="zipExp" ${notas.length ? "" : "disabled"}>Baixar .zip</button></td></tr>
-    <tr><td><b>Relatório de notas</b><span class="sub">Número, datas, tomador, valores, retenções, situação e chave</span></td><td class="num"><button class="btn small" data-action="csvNotas" ${notas.length ? "" : "disabled"}>Baixar .csv</button></td></tr>
-    <tr><td><b>Movimento financeiro</b><span class="sub">Recebimentos e pagamentos realizados no mês</span></td><td class="num"><button class="btn small" data-action="csvFin" ${rec.length || pag.length ? "" : "disabled"}>Baixar .csv</button></td></tr>
+    <tr><td><b>XMLs das notas</b><span class="sub">${x.notasTotal} ${plural(x.notasTotal, "nota")}, incluindo canceladas e o XML do cancelamento</span></td><td class="num"><button class="btn small" data-action="zipExp" ${x.notasTotal ? "" : "disabled"}>Baixar .zip</button></td></tr>
+    <tr><td><b>Relatório de notas</b><span class="sub">Número, datas, tomador, valores, retenções, situação e chave</span></td><td class="num"><button class="btn small" data-action="csvNotas" ${x.notasTotal ? "" : "disabled"}>Baixar .csv</button></td></tr>
+    <tr><td><b>Movimento financeiro</b><span class="sub">Recebimentos e pagamentos realizados no mês</span></td><td class="num"><button class="btn small" data-action="csvFin" ${x.temMovimento ? "" : "disabled"}>Baixar .csv</button></td></tr>
   </tbody></table></div>`;
       };
-      function csv(rows) {
-        return (
-          "\ufeff" +
-          rows
-            .map((r) =>
-              r
-                .map((c) => {
-                  const s = String(c ?? "");
-                  return /[;"\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-                })
-                .join(";"),
-            )
-            .join("\r\n")
-        );
-      }
-      const dec = (v) => v.toFixed(2).replace(".", ",");
-      function csvNotas() {
-        const ym = F.expMes;
-        const notas = S.notas
-          .filter((n) => n.competencia.slice(0, 7) === ym)
-          .sort((a, b) => a.numero - b.numero);
-        baixar(
-          `notas-${ym}.csv`,
-          csv([
-            [
-              "Número",
-              "Emissão",
-              "Competência",
-              "Tomador",
-              "CPF/CNPJ",
-              "Código serviço",
-              "Código NBS",
-              "Descrição",
-              "Valor",
-              "ISS retido",
-              "Alíquota ISS",
-              "Valor ISS retido",
-              "Valor INSS retido",
-              "Valor líquido",
-              "Situação",
-              "Chave de acesso",
-            ],
-            ...notas.map((n) => [
-              n.numero,
-              fmtDateTime(n.dhEmi),
-              fmtDate(n.competencia),
-              n.tomador.nome,
-              fmtDoc(n.tomador.doc),
-              fmtServ(n.cServ),
-              n.nbs ? fmtNBS(n.nbs) : "",
-              n.descricao,
-              dec(n.valor),
-              n.issRetido ? "Sim" : "Não",
-              n.issRetido ? dec(n.aliqIss) : "",
-              dec(n.vIssRet || 0),
-              dec(n.vInssRet || 0),
-              dec(n.vLiq ?? n.valor),
-              n.status === "autorizada" ? "Autorizada" : "Cancelada",
-              n.chave,
-            ]),
-          ]),
-        );
-      }
-      function csvFin() {
-        const ym = F.expMes;
-        const rec = S.receber
-          .filter((t) => (t.recebidoEm || "").slice(0, 7) === ym)
-          .map((t) => [
-            "Recebimento",
-            fmtDate(t.recebidoEm),
-            fmtDate(t.venc),
-            t.cliente,
-            t.descricao,
-            "",
-            dec(t.valor),
-          ]);
-        const pag = S.pagar
-          .filter((t) => (t.pagoEm || "").slice(0, 7) === ym)
-          .map((t) => [
-            "Pagamento",
-            fmtDate(t.pagoEm),
-            fmtDate(t.venc),
-            t.fornecedor,
-            t.descricao,
-            t.categoria,
-            dec(-t.valor),
-          ]);
-        baixar(
-          `financeiro-${ym}.csv`,
-          csv([
-            [
-              "Tipo",
-              "Data",
-              "Vencimento",
-              "Cliente/Fornecedor",
-              "Descrição",
-              "Categoria",
-              "Valor",
-            ],
-            ...rec,
-            ...pag,
-          ]),
-        );
-      }
 
       /* --- usuários --- */
-      V.usuarios = () => `
+      V.usuarios = (users) => `
   <h1>Usuários</h1>
   <p class="lead">O perfil contador consulta notas, financeiro e arquivos, sem emitir nem alterar.</p>
   <div class="tablewrap cards" style="margin-bottom:20px"><table>
     <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th></th></tr></thead>
-    <tbody>${S.users
+    <tbody>${users
       .map(
         (u) => `<tr>
       <td class="c-title"><div class="withav"><span class="avatar sm">${avatarHTML(u)}</span><span><b>${esc(u.nome)}</b>${u.id === me.id ? '<span class="sub">Você</span>' : ""}</span></div></td><td data-label="E-mail">${esc(u.email)}</td>
       <td data-label="Perfil">${u.perfil === "empresa" ? '<span class="chip brand">Empresa</span>' : '<span class="chip neutral">Contador</span>'}</td>
-      <td class="c-actions"><div class="actions">${u.id !== me.id ? `<button class="link bad" data-action="delUser" data-id="${u.id}">Remover acesso</button>` : ""}</div></td>
+      <td class="c-actions"><div class="actions">${u.id !== me.id ? `<button class="link bad" data-action="delUser" data-id="${esc(u.id)}">Remover acesso</button>` : ""}</div></td>
     </tr>`,
       )
       .join("")}</tbody>
   </table></div>
   <div class="panel"><h2>Convidar usuário</h2>
     <div class="form">
-      <div class="field"><label for="uNome">Nome</label><input id="uNome"></div>
+      <div class="field"><label for="uNome">Nome</label><input id="uNome" maxlength="120"></div>
       <div class="field"><label for="uEmail">E-mail</label><input id="uEmail" type="email" autocomplete="off"></div>
       <div class="field"><label for="uPerfil">Perfil</label><select id="uPerfil"><option value="contador">Contador, somente leitura</option><option value="empresa">Empresa, acesso completo</option></select></div>
       <div class="field"><label for="uSenha">Senha inicial</label><input id="uSenha" type="password" autocomplete="new-password" placeholder="Mínimo de 8 caracteres"></div>
@@ -3240,16 +2814,11 @@
           toast("Informe um e-mail válido.");
           return;
         }
-        if (S.users.some((u) => u.email === email)) {
-          toast("Já existe um usuário com esse e-mail.");
-          return;
-        }
         if (senha.length < 8) {
           toast("A senha precisa ter pelo menos 8 caracteres.");
           return;
         }
-        S.users.push(await novoUsuario(nome, email, perfil, senha));
-        save();
+        await api("POST", "/usuarios", { nome, email, perfil, senha });
         render();
         toast(`${nome} adicionado`);
       }
@@ -3262,16 +2831,35 @@
     <div>
       <b>${esc(me.nome)}</b><span class="muted">${esc(me.email)}</span>
       <div class="row" style="margin-top:12px;gap:8px">
-        <button class="btn small" data-action="escolherFoto">${me.foto ? "Trocar foto" : "Carregar foto"}</button>
-        ${me.foto ? '<button class="btn small danger" data-action="removerFoto">Remover foto</button>' : ""}
+        <button class="btn small" data-action="escolherFoto">${me.temFoto ? "Trocar foto" : "Carregar foto"}</button>
+        ${me.temFoto ? '<button class="btn small danger" data-action="removerFoto">Remover foto</button>' : ""}
         <input type="file" id="fotoFile" accept="image/*" hidden>
       </div>
     </div>
   </div>
   <p class="muted" style="font-size:13px;margin:12px 0 0">JPG, PNG ou WebP. A foto é cortada em quadrado pelo centro e aparece no menu e na lista de usuários.</p>
-  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn primary" data-action="fechar">Fechar</button></div>`);
+  <h3 style="margin:20px 0 8px">Trocar senha</h3>
+  <div class="form">
+    <div class="field"><label for="sAtual">Senha atual</label><input id="sAtual" type="password" autocomplete="current-password"></div>
+    <div class="field"><label for="sNova">Nova senha</label><input id="sNova" type="password" autocomplete="new-password" placeholder="Mínimo de 8 caracteres"></div>
+  </div>
+  <p class="loginerr" id="sErr" role="alert" style="margin-top:8px"></p>
+  <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn" data-action="trocarSenha">Trocar senha</button><button class="btn primary" data-action="fechar">Fechar</button></div>`);
       }
-      // corta no centro e reduz para 192px, para caber folgado no localStorage
+      async function trocarSenha() {
+        const atual = document.getElementById("sAtual"),
+          nova = document.getElementById("sNova"),
+          err = document.getElementById("sErr");
+        err.textContent = "";
+        try {
+          await api("PUT", "/auth/senha", { atual: atual.value, nova: nova.value });
+          atual.value = nova.value = "";
+          toast("Senha trocada. As outras sessões foram encerradas.");
+        } catch (e) {
+          err.textContent = e.message;
+        }
+      }
+      // corta no centro e reduz para 192px; o servidor aceita até 200 KB
       async function salvarFoto(file) {
         if (!/^image\//.test(file.type)) {
           toast("Escolha um arquivo de imagem.");
@@ -3310,26 +2898,22 @@
           toast("Não consegui ler essa imagem.");
           return;
         }
-        const antes = me.foto;
-        me.foto = foto;
-        if (!save()) {
-          me.foto = antes;
-          toast("Sem espaço no navegador para salvar a foto.");
-          return;
-        }
-        render();
+        await api("PUT", "/me/foto", { dataUrl: foto });
+        me.temFoto = true;
+        fotoVer = Date.now();
+        renderShell();
         abrirPerfil();
         toast("Foto atualizada");
       }
 
       /* --- empresa e certificado --- */
-      V.config = () => {
-        const e = S.empresa,
-          c = e.cert,
-          st = certStatus();
+      V.config = (e) => {
+        const c = e.cert,
+          st = certStatus(),
+          ib = e.ibsCbs || {};
         return `
   <h1>Empresa e certificado</h1>
-  
+  ${e.pendencias.length ? `<div class="alert"><span><b>Para emitir, falta:</b> ${e.pendencias.map(esc).join(" ")}</span></div>` : ""}
   <div class="panel" style="margin-bottom:20px">
     <div class="cert">
       <div class="seal ${st.k === "ok" ? "ok" : ""}">${icon("cert")}</div>
@@ -3337,258 +2921,198 @@
         <h2 style="margin-bottom:4px">Certificado digital e-CNPJ A1</h2>
         ${
           c
-            ? `<div class="row" style="gap:8px">${st.k === "ok" ? `<span class="chip ok">Válido por mais ${st.d} dias</span>` : st.k === "vencendo" ? `<span class="chip warn">Vence em ${st.d} dia${st.d !== 1 ? "s" : ""}</span>` : '<span class="chip bad">Vencido</span>'}<span class="muted" style="font-size:13px">Verificado em ${fmtDateTime(c.verificadoEm)}</span></div>
+            ? `<div class="row" style="gap:8px">${st.k === "ok" ? `<span class="chip ok">Válido por mais ${st.d} dias</span>` : st.k === "vencendo" ? `<span class="chip warn">Vence em ${st.d} ${plural(st.d, "dia")}</span>` : '<span class="chip bad">Vencido</span>'}<span class="muted" style="font-size:13px">Enviado em ${fmtDateTime(c.verificadoEm)}</span></div>
           <div class="kv">
             <div><span>Titular</span>${esc(c.titular)}</div>
-            <div><span>CNPJ</span>${fmtDoc(c.cnpj)}</div>
+            <div><span>CNPJ</span>${esc(fmtDoc(c.cnpj))}</div>
             <div><span>Validade</span>${fmtDate(c.validoDe)} a ${fmtDate(c.validoAte)}</div>
             <div><span>Autoridade certificadora</span>${esc(c.emissor) || "—"}</div>
           </div>`
-            : '<p class="muted" style="margin:0">Nenhum certificado verificado ainda.</p>'
+            : '<p class="muted" style="margin:0">Nenhum certificado enviado ainda.</p>'
         }
         <div class="form" style="margin-top:18px">
           <div class="field"><label for="certFile">Arquivo .pfx ou .p12</label><input id="certFile" type="file" accept=".pfx,.p12"></div>
           <div class="field"><label for="certSenha">Senha do certificado</label><input id="certSenha" type="password" autocomplete="off"></div>
-          <div class="field"><button class="btn primary" data-action="verCert">${c ? "Substituir certificado" : "Verificar certificado"}</button></div>
+          <div class="field"><button class="btn primary" data-action="verCert">${c ? "Substituir certificado" : "Enviar certificado"}</button></div>
         </div>
         <p class="loginerr" id="certErr" role="alert" style="margin-top:10px"></p>
-        <p class="muted" style="font-size:13px;margin:0">A leitura acontece só neste navegador. O arquivo e a senha não são guardados, apenas titular, CNPJ e validade. Na versão em produção, o certificado fica criptografado no servidor, que assina e envia as notas.</p>
+        <p class="muted" style="font-size:13px;margin:0">O servidor confere se o certificado é deste CNPJ e está na validade, e guarda o arquivo e a senha criptografados. Eles só são usados para assinar e enviar as notas, e nunca voltam para o navegador.</p>
       </div>
     </div>
   </div>
   <div class="panel stack">
     <h2 style="margin:0">Dados da empresa</h2>
     <div class="form">
-      <div class="field" style="grid-column:1/-1"><label for="cRaz">Razão social</label><input id="cRaz" value="${esc(e.razao)}"></div>
+      <div class="field" style="grid-column:1/-1"><label for="cRaz">Razão social</label><input id="cRaz" value="${esc(e.razao)}" maxlength="150"></div>
       <div class="field"><label for="cCnpj">CNPJ</label><input id="cCnpj" value="${esc(fmtDoc(e.cnpj))}"></div>
-      <div class="field"><label for="cIm">Inscrição municipal</label><input id="cIm" value="${esc(e.im)}"></div>
-      <div class="field"><label>Município</label><input value="Jaraguá do Sul/SC (IBGE 4208906)" disabled></div>
+      <div class="field"><label for="cIm">Inscrição municipal</label><input id="cIm" value="${esc(e.im)}" maxlength="30"></div>
+      <div class="field"><label>Município</label><input value="Jaraguá do Sul/SC (IBGE ${esc(e.ibge)})" disabled></div>
       <div class="field"><label>Regime</label><input value="Simples Nacional, ME/EPP" disabled></div>
-      <div class="field"><label for="cServ">Código de serviço padrão</label><input id="cServ" value="${esc(fmtServ(e.cServPadrao) === "—" ? "" : fmtServ(e.cServPadrao))}" placeholder="Ex.: 01.07.01"></div>
+      <div class="field"><label for="cServ">Código de serviço padrão</label><input id="cServ" value="${esc(e.cServPadrao ? fmtServ(e.cServPadrao) : "")}" placeholder="Ex.: 01.07.01"></div>
       <div class="field"><label for="cNbs">Código NBS padrão</label><input id="cNbs" value="${esc(e.cNBSPadrao ? fmtNBS(e.cNBSPadrao) : "")}" placeholder="Ex.: 1.1502.10.00"></div>
-      <div class="field"><label for="cAliq">Alíquota do ISS retido (%)</label><input id="cAliq" inputmode="decimal" value="${e.aliqIss != null ? String(e.aliqIss).replace(".", ",") : ""}" placeholder="Ex.: 2,5"></div>
-      <div class="field"><label for="cVenc">Vencimento padrão (dias)</label><input id="cVenc" type="number" min="0" value="${+e.vencDias}"></div>
-      <div class="field"><label for="cSerie">Série da DPS</label><input id="cSerie" value="${esc(e.serie)}"></div>
+      <div class="field"><label for="cAliq">Alíquota do ISS retido (%)</label><input id="cAliq" inputmode="decimal" value="${esc(numBR(e.aliqIss))}" placeholder="Entre 1,8 e 5"></div>
+      <div class="field"><label for="cVenc">Vencimento padrão (dias)</label><input id="cVenc" type="number" min="0" max="365" value="${+e.vencDias}"></div>
+      <div class="field"><label for="cSerie">Série da DPS</label><input id="cSerie" value="${esc(e.serie)}" maxlength="5"></div>
       <div class="field"><label for="cDps">Próximo nº da DPS</label><input id="cDps" type="number" min="1" value="${e.proxDPS}"></div>
     </div>
+    <h2 style="margin:12px 0 0">Configuração fiscal da DPS</h2>
+    <p class="muted" style="margin:0;font-size:13px">Valores que a contabilidade informa. A emissão fica bloqueada enquanto faltar algum obrigatório.</p>
+    <div class="form">
+      <div class="field"><label for="cPTot">Tributos aproximados do Simples (%)</label><input id="cPTot" inputmode="decimal" value="${esc(numBR(e.pTotTribSN))}" placeholder="pTotTribSN, ex.: 6,00"></div>
+      <div class="field"><label for="cLocPrest">Município da prestação (IBGE)</label><input id="cLocPrest" inputmode="numeric" maxlength="7" value="${esc(e.cLocPrestacao)}"></div>
+      <div class="field"><label for="cCst">IBS/CBS: CST</label><input id="cCst" inputmode="numeric" maxlength="3" value="${esc(ib.cst || "")}" placeholder="3 dígitos"></div>
+      <div class="field"><label for="cClass">IBS/CBS: cClassTrib</label><input id="cClass" inputmode="numeric" maxlength="6" value="${esc(ib.cClassTrib || "")}" placeholder="6 dígitos"></div>
+      <div class="field"><label for="cIndOp">IBS/CBS: indicador da operação (cIndOp)</label><input id="cIndOp" inputmode="numeric" maxlength="6" value="${esc(ib.cIndOp || "")}" placeholder="6 dígitos"></div>
+      <div class="field"><label for="cIndFinal">Uso ou consumo pessoal (indFinal)</label><select id="cIndFinal"><option value="" ${!ib.indFinal ? "selected" : ""}>Não informar</option><option value="0" ${ib.indFinal === "0" ? "selected" : ""}>0, não</option><option value="1" ${ib.indFinal === "1" ? "selected" : ""}>1, sim</option></select></div>
+    </div>
+    <p class="muted" style="margin:0;font-size:13px">O destinatário é sempre o próprio tomador (indDest = 0). Deixe o CST vazio para não enviar o grupo IBS/CBS, onde ele não for obrigatório.</p>
     <div class="row"><button class="btn primary" data-action="salvarCfg">Salvar dados</button></div>
-  </div>
-  <div class="panel" style="margin-top:20px"><h2>Dados de teste</h2><p class="muted" style="margin:0 0 14px">Apaga notas, títulos, contas e lotes deste navegador. Usuários e dados da empresa continuam.</p><button class="btn danger" data-action="resetAsk">Apagar movimentações</button></div>`;
+  </div>`;
       };
-      function salvarCfg() {
+      async function salvarCfg() {
         const g = (id) => document.getElementById(id).value.trim();
-        const cnpj = digits(g("cCnpj"));
-        if (!validCNPJ(cnpj)) {
-          toast("CNPJ inválido.");
+        const num = (id) => (g(id) ? parseNum(g(id)) : null);
+        const aliq = num("cAliq"),
+          pTot = num("cPTot");
+        if (Number.isNaN(aliq) || Number.isNaN(pTot)) {
+          toast("Confira os percentuais: use números como 2,5.");
           return;
         }
-        const sv = digits(g("cServ"));
-        if (sv && sv.length !== 6) {
-          toast("O código de serviço precisa ter 6 dígitos.");
-          return;
-        }
-        const nbs = digits(g("cNbs"));
-        if (nbs && nbs.length !== 9) {
-          toast("O código NBS precisa ter 9 dígitos.");
-          return;
-        }
-        const aliq = g("cAliq") ? parsePct(g("cAliq")) : null;
-        if (aliq != null && !(aliq > 0 && aliq <= 5)) {
-          toast("A alíquota do ISS deve ser maior que 0% e até 5%.");
-          return;
-        }
-        if (S.empresa.cert && cnpj !== S.empresa.cert.cnpj) {
-          S.empresa.cert = null;
-          toast("CNPJ alterado. Verifique o certificado de novo.");
-        } else toast("Dados salvos");
-        Object.assign(S.empresa, {
-          razao: g("cRaz") || "Sua empresa",
-          cnpj,
+        const cst = digits(g("cCst"));
+        const ibsCbs = cst
+          ? {
+              cst,
+              cClassTrib: digits(g("cClass")),
+              indDest: "0",
+              ...(digits(g("cIndOp")) && { cIndOp: digits(g("cIndOp")) }),
+              ...(g("cIndFinal") && { indFinal: g("cIndFinal") }),
+            }
+          : null;
+        const r = await api("PUT", "/empresa", {
+          razao: g("cRaz"),
+          cnpj: g("cCnpj"),
           im: g("cIm"),
-          cServPadrao: sv,
-          cNBSPadrao: nbs,
-          aliqIss: aliq != null ? cents(aliq) : null,
+          cServPadrao: g("cServ"),
+          cNBSPadrao: g("cNbs"),
+          aliqIss: aliq,
           vencDias: Math.max(0, parseInt(g("cVenc")) || 0),
           serie: g("cSerie") || "900",
           proxDPS: Math.max(1, parseInt(g("cDps")) || 1),
+          pTotTribSN: pTot,
+          cLocPrestacao: digits(g("cLocPrest")),
+          ibsCbs,
         });
-        save();
+        empresa = r;
         render();
+        toast(r.certDesativado ? "CNPJ alterado. Envie o certificado do novo CNPJ." : "Dados salvos");
       }
 
       /* ---------- eventos ---------- */
-      document.addEventListener("click", (e) => {
+      const ACOES = {
+        logout: () => sair(),
+        perfil: () => abrirPerfil(),
+        escolherFoto: () => document.getElementById("fotoFile").click(),
+        removerFoto: async () => {
+          await api("DELETE", "/me/foto");
+          me.temFoto = false;
+          renderShell();
+          abrirPerfil();
+          toast("Foto removida");
+        },
+        trocarSenha: () => trocarSenha(),
+        nav: (a) => {
+          closeModal();
+          go(a.dataset.view);
+        },
+        modelo: () => baixarModelo(),
+        exemplo: () => exemplo(),
+        trocar: () => {
+          batch = null;
+          render();
+        },
+        emitir: () => emitirLote(),
+        abrirLote: (a) => abrirLote(a.dataset.id),
+        continuarLote: () => batch && batch.loteId && processarLote(batch),
+        reprocessar: () => batch && batch.loteId && reprocessarLote(batch),
+        ver: (a) => verNota(a.dataset.id),
+        xml: async (a) => {
+          const arqs = await api("GET", `/notas/${encodeURIComponent(a.dataset.id)}/xmls`);
+          await zipArquivos(arqs, `${arqs.length ? arqs[0].nome.replace(/\.xml$/, "") : "NFSe"}.zip`);
+        },
+        cancelar: (a) => pedirCancelamento(a.dataset.id),
+        confirmaCancel: (a) => confirmaCancel(a.dataset.id),
+        verificarCanc: (a) => verificarCanc(a.dataset.id),
+        fechar: () => closeModal(),
+        zipMes: async () =>
+          zipArquivos(
+            await api("GET", `/notas/xmls?mes=${F.notasMes}&status=${F.notasStatus}`),
+            `NFSe-xml-${F.notasMes}.zip`,
+          ),
+        zipExp: async () =>
+          zipArquivos(
+            await api("GET", `/notas/xmls?mes=${F.expMes}&status=todas`),
+            `NFSe-xml-${F.expMes}.zip`,
+          ),
+        csvNotas: () => baixarDaApi(`/exportar/${F.expMes}/notas.csv`, `notas-${F.expMes}.csv`),
+        csvFin: () => baixarDaApi(`/exportar/${F.expMes}/financeiro.csv`, `financeiro-${F.expMes}.csv`),
+        receber: async (a) => {
+          await api("POST", `/receber/${encodeURIComponent(a.dataset.id)}/recebido`, {});
+          render();
+          toast("Recebimento registrado");
+        },
+        desfazRec: async (a) => {
+          await api("DELETE", `/receber/${encodeURIComponent(a.dataset.id)}/recebido`);
+          render();
+        },
+        addPagar: () => addPagar(),
+        pagar: (a) => marcarPaga(a.dataset.id),
+        desfazPag: async (a) => {
+          await api("DELETE", `/pagar/${encodeURIComponent(a.dataset.id)}/pago`);
+          render();
+        },
+        delPagar: async (a) => {
+          await api("DELETE", `/pagar/${encodeURIComponent(a.dataset.id)}`);
+          render();
+          toast("Conta excluída");
+        },
+        salvarCfg: () => salvarCfg(),
+        verCert: () => enviarCert(),
+        addUser: () => addUser(),
+        delUser: (a) => {
+          const u = (Array.isArray(dados) ? dados : []).find((x) => x.id === a.dataset.id);
+          if (!u || u.id === me.id) return;
+          openModal(
+            `<h2>Remover acesso de ${esc(u.nome)}?</h2><p class="muted">${esc(u.email)} não vai mais conseguir entrar no sistema, e as sessões abertas são encerradas.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="confirmaDelUser" data-id="${esc(u.id)}">Remover acesso</button></div>`,
+          );
+        },
+        confirmaDelUser: async (a) => {
+          await api("DELETE", `/usuarios/${encodeURIComponent(a.dataset.id)}`);
+          closeModal();
+          render();
+          toast("Acesso removido");
+        },
+      };
+      // O servidor é quem decide o que cada perfil pode; aqui só evita o clique inútil.
+      const SO_EMPRESA = new Set([
+        "modelo", "exemplo", "emitir", "continuarLote", "reprocessar", "cancelar",
+        "confirmaCancel", "verificarCanc", "receber", "desfazRec", "addPagar", "pagar",
+        "desfazPag", "delPagar", "salvarCfg", "addUser", "delUser", "confirmaDelUser", "verCert",
+      ]);
+      document.addEventListener("click", async (e) => {
         const a = e.target.closest("[data-action]");
         if (!a) return;
-        const id = a.dataset.id;
-        const soEmp = [
-          "modelo",
-          "exemplo",
-          "emitir",
-          "cancelar",
-          "confirmaCancel",
-          "receber",
-          "desfazRec",
-          "addPagar",
-          "pagar",
-          "desfazPag",
-          "delPagar",
-          "salvarCfg",
-          "resetAsk",
-          "reset",
-          "addUser",
-          "delUser",
-          "verCert",
-        ];
-        if (soEmp.includes(a.dataset.action) && !isEmp()) return;
-        switch (a.dataset.action) {
-          case "demoLogin":
-            document.getElementById("lgEmail").value = a.dataset.email;
-            document.getElementById("lgSenha").value = "demo1234";
-            document.getElementById("loginForm").requestSubmit();
-            break;
-          case "logout":
-            sair();
-            break;
-          case "perfil":
-            abrirPerfil();
-            break;
-          case "escolherFoto":
-            document.getElementById("fotoFile").click();
-            break;
-          case "removerFoto":
-            delete me.foto;
-            save();
-            render();
-            abrirPerfil();
-            toast("Foto removida");
-            break;
-          case "nav":
-            closeModal();
-            go(a.dataset.view);
-            break;
-          case "modelo":
-            baixarModelo();
-            break;
-          case "exemplo":
-            exemplo();
-            break;
-          case "trocar":
-            batch = null;
-            render();
-            break;
-          case "emitir":
-            emitirLote();
-            break;
-          case "ver":
-            verNota(id);
-            break;
-          case "xml": {
-            const n = S.notas.find((x) => x.id === id);
-            if (n) zipNotas([n], `NFSe-${n.numero}.zip`);
-            break;
-          }
-          case "cancelar":
-            pedirCancelamento(id);
-            break;
-          case "confirmaCancel":
-            confirmaCancel(id);
-            break;
-          case "fechar":
-            closeModal();
-            break;
-          case "zipMes":
-            zipNotas(
-              notasFiltradas(F.notasMes, F.notasStatus),
-              `NFSe-xml-${F.notasMes}.zip`,
-            );
-            break;
-          case "zipExp":
-            zipNotas(
-              S.notas.filter((n) => n.competencia.slice(0, 7) === F.expMes),
-              `NFSe-xml-${F.expMes}.zip`,
-            );
-            break;
-          case "csvNotas":
-            csvNotas();
-            break;
-          case "csvFin":
-            csvFin();
-            break;
-          case "receber": {
-            const t = S.receber.find((x) => x.id === id);
-            t.recebidoEm = todayISO();
-            save();
-            render();
-            toast("Recebimento registrado");
-            break;
-          }
-          case "desfazRec": {
-            const t = S.receber.find((x) => x.id === id);
-            t.recebidoEm = null;
-            save();
-            render();
-            break;
-          }
-          case "addPagar":
-            addPagar();
-            break;
-          case "pagar":
-            marcarPaga(id);
-            break;
-          case "desfazPag": {
-            const t = S.pagar.find((x) => x.id === id);
-            t.pagoEm = null;
-            save();
-            render();
-            break;
-          }
-          case "delPagar":
-            S.pagar = S.pagar.filter((x) => x.id !== id);
-            save();
-            render();
-            toast("Conta excluída");
-            break;
-          case "salvarCfg":
-            salvarCfg();
-            break;
-          case "verCert":
-            verificarCert();
-            break;
-          case "addUser":
-            addUser();
-            break;
-          case "delUser": {
-            const u = S.users.find((x) => x.id === id);
-            if (!u || u.id === me.id) break;
-            openModal(
-              `<h2>Remover acesso de ${esc(u.nome)}?</h2><p class="muted">${esc(u.email)} não vai mais conseguir entrar no sistema.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="confirmaDelUser" data-id="${u.id}">Remover acesso</button></div>`,
-            );
-            break;
-          }
-          case "confirmaDelUser":
-            if (!isEmp()) break;
-            S.users = S.users.filter((x) => x.id !== id || x.id === me.id);
-            save();
-            closeModal();
-            render();
-            toast("Acesso removido");
-            break;
-          case "resetAsk":
-            openModal(
-              `<h2>Apagar movimentações?</h2><p class="muted">Notas, contas a receber, contas a pagar e lotes deste navegador serão apagados. Não dá para desfazer.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="reset">Apagar movimentações</button></div>`,
-            );
-            break;
-          case "reset":
-            Object.assign(S, { notas: [], receber: [], pagar: [], lotes: [] });
-            S.empresa.proxDPS = 1;
-            S.empresa.proxNFSe = 1;
-            batch = null;
-            save();
-            closeModal();
-            go("painel");
-            toast("Movimentações apagadas");
-            break;
+        const acao = a.dataset.action;
+        if (SO_EMPRESA.has(acao) && !isEmp()) return;
+        const f = ACOES[acao];
+        if (!f || a.disabled) return;
+        // botão fica travado enquanto a requisição anda: clique duplo não repete a ação
+        a.disabled = true;
+        try {
+          await f(a);
+        } catch (ex) {
+          toast(ex.message || "Algo deu errado. Tente de novo.");
+        } finally {
+          a.disabled = false;
         }
       });
       document.addEventListener("change", (e) => {
@@ -3598,7 +3122,7 @@
           return;
         }
         if (t.id === "fotoFile" && t.files[0]) {
-          salvarFoto(t.files[0]);
+          salvarFoto(t.files[0]).catch((ex) => toast(ex.message));
           return;
         }
         if (t.dataset.filter) {
@@ -3611,9 +3135,10 @@
 
       (async () => {
         try {
-          await seedUsers();
-        } catch (e) {}
-        loadSession();
+          await iniciarSessao();
+        } catch (e) {
+          me = null;
+        }
         render();
       })();
     </script>

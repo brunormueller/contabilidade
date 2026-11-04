@@ -21,7 +21,7 @@ export function addMeses(dia: string, n: number) {
 }
 
 export const DIA = /^\d{4}-\d{2}-\d{2}$/;
-export const MES = /^\d{4}-\d{2}$/;
+export const MES = /^\d{4}-(0[1-9]|1[0-2])$/;
 
 export function diaValido(s: string) {
   if (!DIA.test(s)) return false;

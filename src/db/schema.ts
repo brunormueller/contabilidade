@@ -144,16 +144,24 @@ export const certificados = pgTable(
   (t) => [uniqueIndex("certificados_ativo_uq").on(t.empresaId).where(sql`${t.ativo}`)],
 );
 
-export const lotes = pgTable("lotes", {
-  id: uuid().primaryKey().defaultRandom(),
-  empresaId: uuid().notNull().references(() => empresa.id),
-  ambiente: ambienteEnum().notNull(),
-  arquivo: text().notNull().default(""),
-  criadoPor: uuid().references(() => usuarios.id),
-  criadoEm: agora(),
-  qtd: integer().notNull(),
-  valorTotal: centavos().notNull(),
-});
+export const lotes = pgTable(
+  "lotes",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    empresaId: uuid().notNull().references(() => empresa.id),
+    ambiente: ambienteEnum().notNull(),
+    arquivo: text().notNull().default(""),
+    // chave que o navegador gera ao carregar a planilha: clique duplo ou reenvio não cria
+    // um segundo lote com outros números de DPS
+    chaveIdem: text().notNull(),
+    hashLinhas: text().notNull(),
+    criadoPor: uuid().references(() => usuarios.id),
+    criadoEm: agora(),
+    qtd: integer().notNull(),
+    valorTotal: centavos().notNull(),
+  },
+  (t) => [uniqueIndex("lotes_idem_uq").on(t.empresaId, t.chaveIdem)],
+);
 
 export const notas = pgTable(
   "notas",
@@ -201,6 +209,7 @@ export const notas = pgTable(
     uniqueIndex("notas_chave_uq").on(t.chaveAcesso),
     index("notas_competencia_ix").on(t.empresaId, t.ambiente, t.competencia),
     index("notas_lote_ix").on(t.loteId, t.status),
+    index("notas_fila_ix").on(t.ambiente, t.status, t.proximaTentativaEm),
   ],
 );
 
