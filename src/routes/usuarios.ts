@@ -33,7 +33,7 @@ rotaUsuarios.get("/", soEmpresa, async (c) => {
 rotaUsuarios.post("/", async (c) => {
   const b = await corpo(
     c,
-    z.object({ nome: z.string().max(120), email: z.string().max(254), perfil: z.enum(["empresa", "contador"]), senha: z.string().max(256) }),
+    z.object({ nome: z.string().max(120), email: z.string().max(254), perfil: z.enum(["empresa", "contador", "funcionario"]), senha: z.string().max(256) }),
   );
   const d = await db();
   const u = await d.transaction(async (tx) => {

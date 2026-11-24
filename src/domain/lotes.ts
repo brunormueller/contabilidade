@@ -2,17 +2,28 @@ import { createHash } from "node:crypto";
 import { and, asc, count, desc, eq, inArray, sum } from "drizzle-orm";
 import type { DB, Tx } from "../db/client.js";
 import { empresa, lotes, notas, notaStatusEnum } from "../db/schema.js";
-import type { Ambiente } from "../env.js";
+import { env, type Ambiente } from "../env.js";
 import { HttpError, invalido, naoEncontrado } from "../lib/erros.js";
 import { ConfigIncompleta, idDps, montarDps, type EmpresaDps, type NotaDps } from "../nfse/dps.js";
 import { pendenciasFiscais } from "../nfse/pendencias.js";
-import { paraCentavos, paraReais, pctParaInt } from "./dinheiro.js";
+import { intParaPct, paraCentavos, paraReais, pctParaInt } from "./dinheiro.js";
 import { carregarEmpresa, reservarDps, resumoCertificado } from "./empresa.js";
-import type { Linha } from "./planilha.js";
+import { exigeIbsCbs } from "../nfse/ambiente.js";
+import type { Linha, Padroes } from "./planilha.js";
 
 type Empresa = typeof empresa.$inferSelect;
 type Nota = typeof notas.$inferSelect;
 type Status = (typeof notaStatusEnum.enumValues)[number];
+
+/** Padrões da empresa para validar linhas de nota (planilha ou faturamento). */
+export const padroesDaEmpresa = (e: Empresa): Padroes => ({
+  cServPadrao: e.cTribNacPadrao,
+  cNBSPadrao: e.cNbsPadrao,
+  aliqIss: intParaPct(e.aliqIssPadrao),
+  vencDias: e.vencDias,
+  cnpjEmpresa: e.cnpj,
+  levaIbsCbs: (comp) => e.ibsCbs != null || exigeIbsCbs(env().NFSE_AMBIENTE, comp),
+});
 
 export const empresaDps = (e: Empresa): EmpresaDps => ({
   cnpj: e.cnpj,
@@ -66,7 +77,7 @@ export const hashLinhas = (linhas: unknown) => createHash("sha256").update(JSON.
  */
 export async function criarLote(
   d: DB,
-  a: { empresaId: string; usuarioId: string; ambiente: Ambiente; arquivo: string; chave: string; hash: string; linhas: Linha[]; hoje: string },
+  a: { empresaId: string; usuarioId: string | null; ambiente: Ambiente; arquivo: string; chave: string; hash: string; linhas: Linha[]; hoje: string },
   depois?: (tx: Tx, loteId: string) => Promise<void>,
 ) {
   const existente = await loteDaChave(d, a.empresaId, a.chave);

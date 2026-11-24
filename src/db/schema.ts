@@ -24,7 +24,9 @@ const agora = () => timestamp({ withTimezone: true, mode: "date" }).notNull().de
 const ts = () => timestamp({ withTimezone: true, mode: "date" });
 const centavos = () => bigint({ mode: "number" });
 
-export const perfilEnum = pgEnum("perfil", ["empresa", "contador"]);
+export const perfilEnum = pgEnum("perfil", ["empresa", "contador", "funcionario"]);
+export const visitaStatusEnum = pgEnum("visita_status", ["pendente", "em_atendimento", "concluida", "nao_realizada"]);
+export const envioStatusEnum = pgEnum("envio_status", ["pendente", "enviado", "erro"]);
 export const ambienteEnum = pgEnum("ambiente", ["producao_restrita", "producao"]);
 export const notaStatusEnum = pgEnum("nota_status", [
   "fila",
@@ -59,6 +61,11 @@ export const empresa = pgTable("empresa", {
   pTotTribSn: integer(),
   cLocPrestacao: text().notNull().default(""),
   ibsCbs: jsonb().$type<{ cst: string; cClassTrib: string; cIndOp?: string; indDest: "0" | "1"; indFinal?: "0" | "1" }>(),
+  // faturamento mensal: dia do mês da emissão automática (null = desligada; 31 vira o último dia)
+  diaEmissao: smallint(),
+  // meses com data de emissão antes disto não são faturados sozinhos (configurou no meio do mês)
+  faturamentoDesde: date({ mode: "string" }),
+  enviarEmail: boolean().notNull().default(false),
   atualizadoEm: agora(),
 });
 
@@ -264,6 +271,184 @@ export const pagar = pgTable(
     criadoEm: agora(),
   },
   (t) => [uniqueIndex("pagar_origem_uq").on(t.origemId), index("pagar_venc_ix").on(t.empresaId, t.venc)],
+);
+
+// ---------- clientes, rotas e visitas ----------
+
+/** Mensalidade contratada pelo cliente. */
+export const planos = pgTable(
+  "planos",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    empresaId: uuid().notNull().references(() => empresa.id),
+    nome: text().notNull(),
+    // texto que vai na descrição da nota
+    descricao: text().notNull().default(""),
+    valor: centavos().notNull(),
+    ativo: boolean().notNull().default(true),
+    criadoEm: agora(),
+  },
+  (t) => [index("planos_empresa_ix").on(t.empresaId)],
+);
+
+/** Serviço avulso que o funcionário marca na visita e é cobrado além da mensalidade. */
+export const servicos = pgTable(
+  "servicos",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    empresaId: uuid().notNull().references(() => empresa.id),
+    nome: text().notNull(),
+    valor: centavos().notNull(),
+    ativo: boolean().notNull().default(true),
+    criadoEm: agora(),
+  },
+  (t) => [index("servicos_empresa_ix").on(t.empresaId)],
+);
+
+export const clientes = pgTable(
+  "clientes",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    empresaId: uuid().notNull().references(() => empresa.id),
+    doc: text().notNull(),
+    nome: text().notNull(),
+    email: text().notNull().default(""),
+    telefone: text().notNull().default(""),
+    endereco: text().notNull().default(""),
+    planoId: uuid().references(() => planos.id),
+    ativo: boolean().notNull().default(true),
+    criadoEm: agora(),
+    atualizadoEm: agora(),
+  },
+  (t) => [index("clientes_empresa_ix").on(t.empresaId, t.ativo)],
+);
+
+export const rotas = pgTable(
+  "rotas",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    empresaId: uuid().notNull().references(() => empresa.id),
+    nome: text().notNull(),
+    funcionarioId: uuid()
+      .notNull()
+      .references(() => usuarios.id),
+    // dias da semana em que a rota roda: 0 = domingo … 6 = sábado
+    dias: smallint().array().notNull(),
+    ativo: boolean().notNull().default(true),
+    criadoEm: agora(),
+  },
+  (t) => [index("rotas_empresa_ix").on(t.empresaId, t.ativo)],
+);
+
+export const rotaParadas = pgTable(
+  "rota_paradas",
+  {
+    rotaId: uuid()
+      .notNull()
+      .references(() => rotas.id, { onDelete: "cascade" }),
+    clienteId: uuid()
+      .notNull()
+      .references(() => clientes.id),
+    ordem: integer().notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.rotaId, t.clienteId] })],
+);
+
+export type Gps = { lat: number; lng: number; precisao: number | null };
+
+export const visitas = pgTable(
+  "visitas",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    empresaId: uuid().notNull().references(() => empresa.id),
+    rotaId: uuid()
+      .notNull()
+      .references(() => rotas.id),
+    clienteId: uuid()
+      .notNull()
+      .references(() => clientes.id),
+    funcionarioId: uuid()
+      .notNull()
+      .references(() => usuarios.id),
+    data: date({ mode: "string" }).notNull(),
+    ordem: integer().notNull(),
+    status: visitaStatusEnum().notNull().default("pendente"),
+    chegadaEm: ts(),
+    chegadaGps: jsonb().$type<Gps>(),
+    fimEm: ts(),
+    fimGps: jsonb().$type<Gps>(),
+    obs: text().notNull().default(""),
+    motivo: text().notNull().default(""),
+    criadoEm: agora(),
+    atualizadoEm: agora(),
+  },
+  (t) => [
+    // a mesma parada não vira duas visitas no mesmo dia
+    uniqueIndex("visitas_dia_uq").on(t.rotaId, t.clienteId, t.data),
+    index("visitas_empresa_ix").on(t.empresaId, t.data),
+    index("visitas_funcionario_ix").on(t.funcionarioId, t.data),
+  ],
+);
+
+/** O que foi feito na visita. Nome e valor copiados: mudar o catálogo depois não muda o histórico. */
+export const visitaItens = pgTable(
+  "visita_itens",
+  {
+    visitaId: uuid()
+      .notNull()
+      .references(() => visitas.id, { onDelete: "cascade" }),
+    servicoId: uuid()
+      .notNull()
+      .references(() => servicos.id),
+    nome: text().notNull(),
+    valor: centavos().notNull(),
+    // nota em que o serviço foi cobrado; null = ainda não faturado
+    notaId: uuid().references(() => notas.id),
+  },
+  (t) => [primaryKey({ columns: [t.visitaId, t.servicoId] }), index("visita_itens_nota_ix").on(t.notaId)],
+);
+
+/** Mensalidade do mês já faturada para o cliente. Impede cobrar o mesmo mês duas vezes. */
+export const faturas = pgTable(
+  "faturas",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    empresaId: uuid().notNull().references(() => empresa.id),
+    ambiente: ambienteEnum().notNull(),
+    clienteId: uuid()
+      .notNull()
+      .references(() => clientes.id),
+    mes: text().notNull(), // YYYY-MM
+    notaId: uuid()
+      .notNull()
+      .references(() => notas.id),
+    mensalidade: centavos().notNull(),
+    extras: centavos().notNull(),
+    automatica: boolean().notNull(),
+    criadoEm: agora(),
+  },
+  (t) => [uniqueIndex("faturas_mes_uq").on(t.ambiente, t.clienteId, t.mes), index("faturas_empresa_ix").on(t.empresaId, t.ambiente, t.mes)],
+);
+
+/** E-mail da nota autorizada para o tomador. */
+export const envios = pgTable(
+  "envios",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    empresaId: uuid().notNull().references(() => empresa.id),
+    notaId: uuid()
+      .notNull()
+      .references(() => notas.id),
+    para: text().notNull(),
+    status: envioStatusEnum().notNull().default("pendente"),
+    tentativas: integer().notNull().default(0),
+    proximaTentativaEm: ts().notNull().defaultNow(),
+    leaseAte: ts(),
+    ultimoErro: text(),
+    enviadoEm: ts(),
+    criadoEm: agora(),
+  },
+  (t) => [uniqueIndex("envios_nota_uq").on(t.notaId), index("envios_fila_ix").on(t.status, t.proximaTentativaEm)],
 );
 
 export const auditoria = pgTable(

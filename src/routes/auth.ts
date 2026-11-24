@@ -4,7 +4,7 @@ import { z } from "zod";
 import { conferirSenha, gastarTempo, hashSenha, senhaFraca } from "../auth/senha.js";
 import { abrirSessao, fecharSessao } from "../auth/sessao.js";
 import { db } from "../db/client.js";
-import { sessoes, tentativasLogin, usuarios } from "../db/schema.js";
+import { empresa, sessoes, tentativasLogin, usuarios } from "../db/schema.js";
 import { normEmail } from "../domain/usuarios.js";
 import { env } from "../env.js";
 import { auditar } from "../lib/auditoria.js";
@@ -56,9 +56,11 @@ auth.post("/logout", async (c) => {
   return c.json({ ok: true });
 });
 
-auth.get("/me", (c) => {
+auth.get("/me", async (c) => {
   const { sessaoId: _s, ...u } = c.get("user");
-  return c.json({ usuario: u, ambiente: env().NFSE_AMBIENTE });
+  // nome da empresa para o topo da tela: o funcionário não lê /api/empresa
+  const [e] = await (await db()).select({ razao: empresa.razao }).from(empresa).where(eq(empresa.id, u.empresaId));
+  return c.json({ usuario: u, ambiente: env().NFSE_AMBIENTE, empresa: e?.razao ?? "" });
 });
 
 auth.put("/senha", async (c) => {

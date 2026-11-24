@@ -1,6 +1,15 @@
 import type { Context } from "hono";
 import type { z } from "zod";
-import { invalido } from "./erros.js";
+import { invalido, naoEncontrado } from "./erros.js";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Id da URL; o que não é UUID vira 404 em vez de erro do Postgres. */
+export function paramId(c: Context, o?: string) {
+  const id = c.req.param("id") ?? "";
+  if (!UUID.test(id)) throw naoEncontrado(o);
+  return id;
+}
 
 /** Lê o corpo JSON e valida com zod; erro vira 400 com a primeira mensagem legível. */
 export async function corpo<T extends z.ZodType>(c: Context, schema: T): Promise<z.infer<T>> {

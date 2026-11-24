@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import type { DB, Tx } from "../db/client.js";
-import { notaDocumentos, notas, receber } from "../db/schema.js";
+import { faturas, notaDocumentos, notas, receber, visitaItens } from "../db/schema.js";
 import { env, type Ambiente } from "../env.js";
 import { fimDoMes } from "../lib/datas.js";
 import { HttpError, naoEncontrado } from "../lib/erros.js";
@@ -141,13 +141,18 @@ async function voltarParaAutorizada(d: DB, n: Nota, erro: object) {
     .where(and(eq(notas.id, n.id), eq(notas.status, "cancelamento_pendente")));
 }
 
-/** Nota cancelada e título a receber em aberto removido (o já recebido fica no financeiro). */
+/**
+ * Nota cancelada e título a receber em aberto removido (o já recebido fica no financeiro).
+ * A mensalidade e os serviços avulsos que ela cobrava voltam a ficar livres para faturar.
+ */
 async function concluirCancelamento(d: DB, n: Nota, xmlEvento: string) {
   await d.transaction(async (tx) => {
     const agora = new Date();
     await tx.update(notas).set({ status: "cancelada", dhCanc: agora, atualizadoEm: agora }).where(eq(notas.id, n.id));
     await gravar(tx, n, "evento_resposta", xmlEvento);
     await tx.delete(receber).where(and(eq(receber.notaId, n.id), isNull(receber.recebidoEm)));
+    await tx.delete(faturas).where(eq(faturas.notaId, n.id));
+    await tx.update(visitaItens).set({ notaId: null }).where(eq(visitaItens.notaId, n.id));
   });
   return { status: "cancelada" as const, mensagem: `NFS-e nº ${n.nNfse} cancelada.` };
 }

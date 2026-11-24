@@ -4,7 +4,7 @@ import type { DB, Tx } from "../db/client.js";
 import { usuarios } from "../db/schema.js";
 import { invalido } from "../lib/erros.js";
 
-export type Perfil = "empresa" | "contador";
+export type Perfil = "empresa" | "contador" | "funcionario";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const normEmail = (e: unknown) => String(e ?? "").trim().toLowerCase();

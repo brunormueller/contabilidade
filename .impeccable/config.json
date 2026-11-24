@@ -11,6 +11,15 @@
         ],
         "createdAt": "2026-11-03T13:03:23.691Z",
         "reason": "Claude: .chip.pulse only appears on the 'Enviando' chip while a note is actually being sent in emitirLote(); it is tied to live progress"
+      },
+      {
+        "rule": "overused-font",
+        "value": "arial",
+        "files": [
+          "src/domain/envios.ts"
+        ],
+        "createdAt": "2026-11-12T01:46:43.465Z",
+        "reason": "Claude: HTML de e-mail transacional (src/domain/envios.ts); clientes de e-mail não carregam fonte web, Arial/Helvetica é a pilha segura"
       }
     ]
   }

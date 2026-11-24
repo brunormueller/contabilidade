@@ -889,6 +889,158 @@
         background: var(--surface-2);
         color: var(--ink-3);
       }
+      .field textarea {
+        border: 1px solid var(--line-2);
+        background: var(--surface);
+        border-radius: 10px;
+        padding: 9px 12px;
+        min-width: 0;
+        width: 100%;
+        min-height: 76px;
+        resize: vertical;
+        font: inherit;
+        color: inherit;
+      }
+      .field textarea:focus {
+        outline: none;
+        border-color: var(--brass);
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 22%, transparent);
+      }
+      .field.wide {
+        grid-column: 1 / -1;
+      }
+
+      /* rotas e visitas */
+      .stops {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      .stops li {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .stops li:last-child {
+        border-bottom: 0;
+      }
+      .stops small {
+        display: block;
+        color: var(--ink-3);
+        font-size: 12.5px;
+      }
+      .stops .n {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--surface-2);
+        color: var(--ink-2);
+        font-size: 13px;
+        font-weight: 600;
+      }
+      .stops li.feito .n {
+        background: var(--ok-soft);
+        color: var(--ok);
+      }
+      .stops li.falhou .n {
+        background: var(--bad-soft);
+        color: var(--bad);
+      }
+      .stops li.agora .n {
+        background: var(--brand);
+        color: var(--brand-ink);
+      }
+      .stops .acts {
+        display: flex;
+        gap: 4px;
+      }
+      .stops .acts .btn {
+        padding: 4px 9px;
+      }
+      .agora-card {
+        border-color: color-mix(in srgb, var(--brass) 55%, var(--line));
+        margin-bottom: 18px;
+      }
+      .agora-card .eyebrow {
+        font-size: 12.5px;
+        color: var(--ink-3);
+        font-weight: 600;
+      }
+      .agora-card h2 {
+        font-family: var(--serif);
+        font-weight: 400;
+        font-size: 30px;
+        line-height: 1.1;
+        margin: 4px 0 6px;
+      }
+      .agora-card .info {
+        color: var(--ink-2);
+        margin: 0 0 14px;
+      }
+      a.btn {
+        color: var(--ink);
+        text-decoration: none;
+      }
+      .btn.big {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 18px;
+        font-size: 16px;
+      }
+      .servs {
+        border: 0;
+        margin: 6px 0 14px;
+        padding: 0;
+      }
+      .servs legend {
+        font-size: 13px;
+        color: var(--ink-2);
+        font-weight: 500;
+        padding: 0;
+        margin-bottom: 4px;
+      }
+      .servs label {
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        padding: 12px 2px;
+        border-bottom: 1px solid var(--line);
+        cursor: pointer;
+      }
+      .servs label .v {
+        margin-left: auto;
+        color: var(--ink-2);
+        white-space: nowrap;
+      }
+      .servs input {
+        width: 20px;
+        height: 20px;
+        accent-color: var(--brand);
+        flex: none;
+      }
+      .dias {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+      }
+      .dias .check {
+        padding-bottom: 0;
+      }
+      .field .dias label {
+        font-size: 14px;
+        color: var(--ink);
+        font-weight: 400;
+      }
+      .rot {
+        font-size: 13px;
+        color: var(--ink-2);
+        font-weight: 500;
+      }
       .check {
         display: flex;
         gap: 8px;
@@ -1144,7 +1296,8 @@
         }
         /* abaixo de 16px o iOS dá zoom ao focar o campo */
         .field input,
-        .field select {
+        .field select,
+        .field textarea {
           font-size: 16px;
         }
         .env {
@@ -1670,6 +1823,7 @@
         receber: "abertos",
         pagar: "abertos",
         expMes: todayISO().slice(0, 7),
+        visitasData: todayISO(),
       };
       const restrita = () => ambiente !== "producao";
 
@@ -1682,7 +1836,9 @@
         const r = await api("GET", "/auth/me");
         me = r.usuario;
         ambiente = r.ambiente;
-        await carregarEmpresa();
+        // funcionário não lê os dados fiscais; basta o nome para o topo
+        if (me.perfil === "funcionario") empresa = { razao: r.empresa, pendencias: [], cert: null };
+        else await carregarEmpresa();
       }
       async function entrar(email, senha) {
         await api("POST", "/auth/login", { email: email.trim(), senha });
@@ -1743,15 +1899,33 @@
         cert: '<path d="M12 3l7 3v5c0 4.5-3 8.5-7 10-4-1.5-7-5.5-7-10V6z"/><path d="m9 12 2 2 4-4"/>',
         upload:
           '<path d="M12 15V3"/><path d="m7 8 5-5 5 5"/><path d="M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"/>',
+        clientes:
+          '<path d="M3 21h18"/><path d="M5 21V8l7-5 7 5v13"/><path d="M9 21v-6h6v6"/>',
+        planos:
+          '<path d="M3 12V4a1 1 0 0 1 1-1h8l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+        rotas:
+          '<circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H16a3.5 3.5 0 0 0 0-7H8a3.5 3.5 0 0 1 0-7h7.5"/>',
+        visitas:
+          '<rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="m9 13 2 2 4-4"/>',
+        campo:
+          '<path d="M12 21s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',
+        faturamento:
+          '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/><path d="m9 15 2 2 4-4"/>',
       };
       const icon = (k) =>
         `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
       const NAV = [
         ["painel", "Painel", ["empresa", "contador"]],
         ["lote", "Emitir em lote", ["empresa"]],
+        ["faturamento", "Faturamento mensal", ["empresa"]],
         ["notas", "Notas emitidas", ["empresa", "contador"]],
         ["receber", "A receber", ["empresa", "contador"]],
         ["pagar", "A pagar", ["empresa", "contador"]],
+        ["visitas", "Visitas", ["empresa"]],
+        ["rotas", "Rotas", ["empresa"]],
+        ["clientes", "Clientes", ["empresa"]],
+        ["planos", "Planos e serviços", ["empresa"]],
+        ["campo", "Minha rota", ["funcionario"]],
         ["exportar", "Arquivos do mês", ["empresa", "contador"]],
         ["usuarios", "Usuários", ["empresa"]],
         ["config", "Empresa e certificado", ["empresa"]],
@@ -1796,8 +1970,11 @@
         document.getElementById("meAv").innerHTML = avatarHTML(me);
         document.getElementById("meAvM").innerHTML = avatarHTML(me);
         document.getElementById("meNome").textContent = me.nome;
-        document.getElementById("mePerfil").textContent =
-          me.perfil === "empresa" ? "Empresa" : "Contador, somente leitura";
+        document.getElementById("mePerfil").textContent = {
+          empresa: "Empresa",
+          contador: "Contador, somente leitura",
+          funcionario: "Funcionário",
+        }[me.perfil];
       }
 
       // O que cada tela busca antes de desenhar.
@@ -1811,6 +1988,21 @@
         exportar: () => api("GET", `/exportar/${F.expMes}`),
         usuarios: () => api("GET", "/usuarios"),
         config: () => carregarEmpresa(),
+        clientes: async () => {
+          const [clientes, planos] = await Promise.all([api("GET", "/clientes"), api("GET", "/planos")]);
+          return { clientes, planos };
+        },
+        planos: async () => {
+          const [planos, servicos] = await Promise.all([api("GET", "/planos"), api("GET", "/servicos")]);
+          return { planos, servicos };
+        },
+        rotas: async () => {
+          const [r, clientes] = await Promise.all([api("GET", "/rotas"), api("GET", "/clientes")]);
+          return { ...r, clientes };
+        },
+        visitas: () => api("GET", `/visitas?data=${F.visitasData}`),
+        campo: () => api("GET", "/campo/hoje"),
+        faturamento: () => api("GET", "/faturamento"),
       };
       let seqRender = 0;
       async function render() {
@@ -1819,7 +2011,7 @@
         document.getElementById("app").hidden = !logged;
         if (!logged) return;
         const nv = NAV.find((n) => n[0] === view);
-        if (!nv || !nv[2].includes(me.perfil)) view = "painel";
+        if (!nv || !nv[2].includes(me.perfil)) view = me.perfil === "funcionario" ? "campo" : "painel";
         renderShell();
         const seq = ++seqRender,
           v = view;
@@ -2488,7 +2680,7 @@
         else
           top = `
     <h1>${r.pendentes ? "Lote em andamento" : "Lote concluído"}</h1>
-    <div class="banner"><b>${aut} ${plural(aut, "nota autorizada", "notas autorizadas")}, total de ${brl(totAut)}</b>${aut ? "As contas a receber foram criadas com os vencimentos da planilha." : ""}${batch.ignoradas.length ? ` ${batch.ignoradas.length} ${plural(batch.ignoradas.length, "linha")} com erro não ${batch.ignoradas.length > 1 ? "foram enviadas" : "foi enviada"}.` : ""}</div>
+    <div class="banner"><b>${aut} ${plural(aut, "nota autorizada", "notas autorizadas")}, total de ${brl(totAut)}</b>${aut ? "As contas a receber foram criadas com os vencimentos das notas." : ""}${batch.ignoradas.length ? ` ${batch.ignoradas.length} ${plural(batch.ignoradas.length, "linha")} com erro não ${batch.ignoradas.length > 1 ? "foram enviadas" : "foi enviada"}.` : ""}</div>
     ${rej ? `<div class="banner bad"><b>${rej} ${plural(rej, "nota rejeitada", "notas rejeitadas")}</b>Veja o motivo em cada linha. Corrija a configuração, se for o caso, e reprocesse: o número da DPS é o mesmo.</div>` : ""}
     ${esperando ? `<div class="banner"><b>${esperando} ${plural(esperando, "nota aguardando", "notas aguardando")} confirmação da Sefin</b>A resposta não chegou. Antes de reenviar, o sistema consulta a Sefin, então não há risco de nota em dobro.</div>` : ""}
     <div class="row" style="margin-bottom:18px">
@@ -2778,14 +2970,14 @@
       /* --- usuários --- */
       V.usuarios = (users) => `
   <h1>Usuários</h1>
-  <p class="lead">O perfil contador consulta notas, financeiro e arquivos, sem emitir nem alterar.</p>
+  <p class="lead">O perfil contador consulta notas, financeiro e arquivos, sem emitir nem alterar. O funcionário só vê a própria rota do dia.</p>
   <div class="tablewrap cards" style="margin-bottom:20px"><table>
     <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th></th></tr></thead>
     <tbody>${users
       .map(
         (u) => `<tr>
       <td class="c-title"><div class="withav"><span class="avatar sm">${avatarHTML(u)}</span><span><b>${esc(u.nome)}</b>${u.id === me.id ? '<span class="sub">Você</span>' : ""}</span></div></td><td data-label="E-mail">${esc(u.email)}</td>
-      <td data-label="Perfil">${u.perfil === "empresa" ? '<span class="chip brand">Empresa</span>' : '<span class="chip neutral">Contador</span>'}</td>
+      <td data-label="Perfil">${{ empresa: '<span class="chip brand">Empresa</span>', contador: '<span class="chip neutral">Contador</span>', funcionario: '<span class="chip neutral">Funcionário</span>' }[u.perfil]}</td>
       <td class="c-actions"><div class="actions">${u.id !== me.id ? `<button class="link bad" data-action="delUser" data-id="${esc(u.id)}">Remover acesso</button>` : ""}</div></td>
     </tr>`,
       )
@@ -2795,7 +2987,7 @@
     <div class="form">
       <div class="field"><label for="uNome">Nome</label><input id="uNome" maxlength="120"></div>
       <div class="field"><label for="uEmail">E-mail</label><input id="uEmail" type="email" autocomplete="off"></div>
-      <div class="field"><label for="uPerfil">Perfil</label><select id="uPerfil"><option value="contador">Contador, somente leitura</option><option value="empresa">Empresa, acesso completo</option></select></div>
+      <div class="field"><label for="uPerfil">Perfil</label><select id="uPerfil"><option value="contador">Contador, somente leitura</option><option value="funcionario">Funcionário, só a própria rota</option><option value="empresa">Empresa, acesso completo</option></select></div>
       <div class="field"><label for="uSenha">Senha inicial</label><input id="uSenha" type="password" autocomplete="new-password" placeholder="Mínimo de 8 caracteres"></div>
     </div>
     <div class="row" style="margin-top:16px"><button class="btn primary" data-action="addUser">Adicionar usuário</button></div>
@@ -3007,6 +3199,637 @@
         toast(r.certDesativado ? "CNPJ alterado. Envie o certificado do novo CNPJ." : "Dados salvos");
       }
 
+      /* --- clientes, planos, rotas e visitas --- */
+      const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+      const diaLongo = (iso) => {
+        const s = new Date(iso + "T12:00:00").toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "long" });
+        return s.charAt(0).toUpperCase() + s.slice(1);
+      };
+      const val = (id) => document.getElementById(id).value.trim();
+      const valorBR = (v) => (v == null ? "" : numBR(v.toFixed(2)));
+      const rodapeModal = (acao, id, botao) =>
+        `<div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Cancelar</button><button class="btn primary" data-action="${acao}" data-id="${esc(id || "")}">${botao}</button></div>`;
+      /** Confirmação de remoção. título e texto já vêm escapados. */
+      const confirmarRemocao = (titulo, texto, url, msg, botao) =>
+        openModal(
+          `<h2>${titulo}</h2><p class="muted">${texto}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="fechar">Voltar</button><button class="btn primary" data-action="confirmaDel" data-url="${esc(url)}" data-msg="${esc(msg)}">${botao}</button></div>`,
+        );
+      const achar = (lista, id) => (lista || []).find((x) => x.id === id);
+
+      /* clientes */
+      V.clientes = (x) => `
+  <h1>Clientes</h1>
+  <p class="lead">Quem você atende. O plano define a mensalidade; os serviços avulsos marcados nas visitas são cobrados à parte.</p>
+  <div class="spread"><span class="muted">${x.clientes.length} ${plural(x.clientes.length, "cliente")}</span><div class="row"><button class="btn primary" data-action="novoCliente">Novo cliente</button></div></div>
+  ${
+    x.clientes.length
+      ? `<div class="tablewrap cards"><table>
+    <thead><tr><th>Cliente</th><th>Contato</th><th>Endereço</th><th>Plano</th><th></th></tr></thead>
+    <tbody>${x.clientes
+      .map(
+        (c) => `<tr>
+      <td class="c-title">${esc(c.nome)}<span class="sub">${esc(fmtDoc(c.doc))}</span></td>
+      <td data-label="Contato">${[c.email, c.telefone].filter(Boolean).map(esc).join("<br>") || "—"}</td>
+      <td data-label="Endereço">${esc(c.endereco || "—")}</td>
+      <td data-label="Plano">${c.planoNome ? `${esc(c.planoNome)}<span class="sub">${brl(c.planoValor)} por mês</span>` : '<span class="muted">Sem plano</span>'}</td>
+      <td class="c-actions"><div class="actions"><button class="link" data-action="editarCliente" data-id="${esc(c.id)}">Editar</button><button class="link bad" data-action="delCliente" data-id="${esc(c.id)}">Remover</button></div></td>
+    </tr>`,
+      )
+      .join("")}</tbody>
+  </table></div>`
+      : '<div class="panel"><p class="empty" style="margin:0">Nenhum cliente cadastrado ainda.</p></div>'
+  }`;
+      function formCliente(c) {
+        const planos = dados.planos;
+        c = c || { nome: "", doc: "", email: "", telefone: "", endereco: "", planoId: null };
+        openModal(`<h2>${c.id ? "Editar cliente" : "Novo cliente"}</h2>
+  <div class="form" style="margin:14px 0 20px">
+    <div class="field wide"><label for="cliNome">Nome ou razão social</label><input id="cliNome" maxlength="300" value="${esc(c.nome)}"></div>
+    <div class="field"><label for="cliDoc">CPF ou CNPJ</label><input id="cliDoc" maxlength="20" value="${esc(c.doc ? fmtDoc(c.doc) : "")}"></div>
+    <div class="field"><label for="cliPlano">Plano</label><select id="cliPlano"><option value="">Sem plano</option>${planos
+      .map((p) => `<option value="${esc(p.id)}" ${p.id === c.planoId ? "selected" : ""}>${esc(p.nome)}, ${brl(p.valor)}</option>`)
+      .join("")}</select></div>
+    <div class="field"><label for="cliEmail">E-mail para a nota</label><input id="cliEmail" type="email" maxlength="80" value="${esc(c.email)}"></div>
+    <div class="field"><label for="cliTel">Telefone</label><input id="cliTel" type="tel" maxlength="20" value="${esc(c.telefone)}"></div>
+    <div class="field wide"><label for="cliEnd">Endereço</label><input id="cliEnd" maxlength="300" placeholder="Rua, número, bairro, cidade" value="${esc(c.endereco)}"></div>
+  </div>
+  ${planos.length ? "" : '<p class="muted" style="margin:-6px 0 16px">Nenhum plano cadastrado. <button class="link" data-action="nav" data-view="planos">Cadastrar planos</button></p>'}
+  ${rodapeModal("salvarCliente", c.id, c.id ? "Salvar" : "Adicionar cliente")}`);
+      }
+      async function salvarCliente(id) {
+        const b = {
+          nome: val("cliNome"),
+          doc: val("cliDoc"),
+          email: val("cliEmail").toLowerCase(),
+          telefone: val("cliTel"),
+          endereco: val("cliEnd"),
+          planoId: val("cliPlano") || null,
+        };
+        if (!b.nome) return toast("Informe o nome do cliente.");
+        if (!docNorm(b.doc)) return toast("Informe o CPF ou CNPJ.");
+        if (b.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(b.email)) return toast("Informe um e-mail válido.");
+        await api(id ? "PUT" : "POST", id ? `/clientes/${encodeURIComponent(id)}` : "/clientes", b);
+        closeModal();
+        render();
+        toast(id ? "Cliente atualizado" : `${b.nome} adicionado`);
+      }
+
+      /* planos e serviços */
+      const itemCatalogo = (o, tipo, sub) => `<li><span>${esc(o.nome)}${sub ? `<small>${esc(sub)}</small>` : ""}
+        <span class="row" style="gap:16px;margin-top:4px"><button class="link" data-action="editar${tipo}" data-id="${esc(o.id)}">Editar</button><button class="link bad" data-action="del${tipo}" data-id="${esc(o.id)}">Remover</button></span></span><b>${brl(o.valor)}</b></li>`;
+      V.planos = (x) => `
+  <h1>Planos e serviços</h1>
+  <p class="lead">O plano é a mensalidade do cliente. Os serviços avulsos aparecem para o funcionário marcar na visita e são cobrados além da mensalidade.</p>
+  <div class="grid2">
+    <div class="panel">
+      <div class="spread" style="margin-bottom:6px"><h2 style="margin:0">Planos</h2><button class="btn small" data-action="novoPlano">Novo plano</button></div>
+      ${x.planos.length ? `<ul class="list">${x.planos.map((p) => itemCatalogo(p, "Plano", p.descricao || "Sem descrição para a nota")).join("")}</ul>` : '<p class="empty">Nenhum plano ainda.</p>'}
+    </div>
+    <div class="panel">
+      <div class="spread" style="margin-bottom:6px"><h2 style="margin:0">Serviços avulsos</h2><button class="btn small" data-action="novoServico">Novo serviço</button></div>
+      ${x.servicos.length ? `<ul class="list">${x.servicos.map((s) => itemCatalogo(s, "Servico")).join("")}</ul>` : '<p class="empty">Nenhum serviço avulso ainda.</p>'}
+    </div>
+  </div>`;
+      function formPlano(p) {
+        p = p || { nome: "", valor: null, descricao: "" };
+        openModal(`<h2>${p.id ? "Editar plano" : "Novo plano"}</h2>
+  <div class="form" style="margin:14px 0 20px">
+    <div class="field"><label for="plNome">Nome</label><input id="plNome" maxlength="120" placeholder="Ex.: Mensal básico" value="${esc(p.nome)}"></div>
+    <div class="field"><label for="plValor">Mensalidade (R$)</label><input id="plValor" inputmode="decimal" placeholder="0,00" value="${esc(valorBR(p.valor))}"></div>
+    <div class="field wide"><label for="plDesc">Descrição na nota</label><textarea id="plDesc" maxlength="1000" placeholder="Ex.: Manutenção mensal de piscina">${esc(p.descricao)}</textarea></div>
+  </div>
+  ${rodapeModal("salvarPlano", p.id, "Salvar")}`);
+      }
+      function formServico(s) {
+        s = s || { nome: "", valor: null };
+        openModal(`<h2>${s.id ? "Editar serviço" : "Novo serviço avulso"}</h2>
+  <div class="form" style="margin:14px 0 20px">
+    <div class="field"><label for="svNome">Nome</label><input id="svNome" maxlength="120" placeholder="Ex.: Troca de filtro" value="${esc(s.nome)}"></div>
+    <div class="field"><label for="svValor">Valor (R$)</label><input id="svValor" inputmode="decimal" placeholder="0,00" value="${esc(valorBR(s.valor))}"></div>
+  </div>
+  ${s.id ? '<p class="muted" style="margin:-6px 0 16px">Mudar o valor não altera as visitas já registradas.</p>' : ""}
+  ${rodapeModal("salvarServico", s.id, "Salvar")}`);
+      }
+      async function salvarCatalogo(caminho, id, b, ok) {
+        if (!b.nome) return toast("Informe o nome.");
+        if (!(b.valor > 0)) return toast("Informe um valor maior que zero.");
+        await api(id ? "PUT" : "POST", id ? `${caminho}/${encodeURIComponent(id)}` : caminho, b);
+        closeModal();
+        render();
+        toast(ok);
+      }
+
+      /* rotas */
+      V.rotas = (x) => `
+  <h1>Rotas</h1>
+  <p class="lead">Cada rota diz quem atende, em que dias da semana e em que ordem. Ao entrar, o funcionário recebe as rotas do dia.</p>
+  ${x.funcionarios.length ? "" : '<div class="alert"><span><b>Nenhum funcionário cadastrado.</b> Crie um usuário com o perfil Funcionário para montar as rotas.</span><button class="btn small" data-action="nav" data-view="usuarios">Abrir usuários</button></div>'}
+  <div class="spread"><span class="muted">${x.rotas.length} ${plural(x.rotas.length, "rota")}</span><div class="row"><button class="btn primary" data-action="novaRota" ${x.funcionarios.length ? "" : "disabled"}>Nova rota</button></div></div>
+  ${
+    x.rotas.length
+      ? `<div class="grid2">${x.rotas
+          .map(
+            (r) => `<div class="panel">
+    <div class="spread" style="margin-bottom:6px;align-items:flex-start"><div><h2 style="margin:0">${esc(r.nome)}</h2><span class="muted">${esc(r.funcionarioNome)} · ${r.dias.map((d) => DIAS[d]).join(", ")}</span></div>${r.funcionarioAtivo ? "" : '<span class="chip bad">Funcionário sem acesso</span>'}</div>
+    ${r.clientes.length ? `<ol class="stops">${r.clientes.map((c, i) => `<li><span class="n">${i + 1}</span><span>${esc(c.nome)}<small>${esc(c.endereco || "Sem endereço")}</small></span><span></span></li>`).join("")}</ol>` : '<p class="empty">Nenhum cliente nesta rota.</p>'}
+    <div class="row" style="gap:16px;margin-top:10px"><button class="link" data-action="editarRota" data-id="${esc(r.id)}">Editar</button><button class="link bad" data-action="delRota" data-id="${esc(r.id)}">Remover</button></div>
+  </div>`,
+          )
+          .join("")}</div>`
+      : '<div class="panel"><p class="empty" style="margin:0">Nenhuma rota ainda.</p></div>'
+  }`;
+      let rotaEd = null; // rota sendo editada no modal
+      function abrirRota(r) {
+        const fs = dados.funcionarios;
+        rotaEd = r
+          ? { id: r.id, nome: r.nome, funcionarioId: r.funcionarioAtivo ? r.funcionarioId : "", dias: [...r.dias], clientes: r.clientes.map((c) => c.id) }
+          : { id: null, nome: "", funcionarioId: fs.length === 1 ? fs[0].id : "", dias: [1, 2, 3, 4, 5], clientes: [] };
+        openModal(rotaHTML());
+      }
+      /** Guarda o que foi digitado antes de redesenhar o modal. */
+      function lerRota() {
+        if (!rotaEd || !document.getElementById("rNome")) return;
+        rotaEd.nome = val("rNome");
+        rotaEd.funcionarioId = val("rFunc");
+        rotaEd.dias = [...document.querySelectorAll("input[name=rDia]:checked")].map((i) => +i.value);
+      }
+      function redesenharRota() {
+        lerRota();
+        document.getElementById("dialog").innerHTML = rotaHTML();
+      }
+      function rotaHTML() {
+        const x = dados,
+          r = rotaEd;
+        const porId = new Map(x.clientes.map((c) => [c.id, c]));
+        const fora = x.clientes.filter((c) => !r.clientes.includes(c.id));
+        const ult = r.clientes.length - 1;
+        return `<h2>${r.id ? "Editar rota" : "Nova rota"}</h2>
+  <div class="form" style="margin:14px 0 18px">
+    <div class="field"><label for="rNome">Nome da rota</label><input id="rNome" maxlength="80" placeholder="Ex.: Centro, manhã" value="${esc(r.nome)}"></div>
+    <div class="field"><label for="rFunc">Funcionário</label><select id="rFunc"><option value="">Escolha</option>${x.funcionarios
+      .map((f) => `<option value="${esc(f.id)}" ${f.id === r.funcionarioId ? "selected" : ""}>${esc(f.nome)}</option>`)
+      .join("")}</select></div>
+    <div class="field wide" role="group" aria-labelledby="rDiasRot"><span class="rot" id="rDiasRot">Dias da semana</span><div class="dias">${DIAS.map(
+      (d, i) => `<label class="check"><input type="checkbox" name="rDia" value="${i}" ${r.dias.includes(i) ? "checked" : ""}> ${d}</label>`,
+    ).join("")}</div></div>
+  </div>
+  <h3 style="font-size:14px;font-weight:600;margin:0 0 4px">Ordem de atendimento</h3>
+  ${
+    r.clientes.length
+      ? `<ol class="stops">${r.clientes
+          .map((id, i) => {
+            const c = porId.get(id) || { nome: "Cliente removido", endereco: "" };
+            return `<li><span class="n">${i + 1}</span><span>${esc(c.nome)}<small>${esc(c.endereco)}</small></span><span class="acts"><button class="btn small" data-action="rotaMover" data-i="${i}" data-d="-1" ${i === 0 ? "disabled" : ""} aria-label="Subir ${esc(c.nome)}">↑</button><button class="btn small" data-action="rotaMover" data-i="${i}" data-d="1" ${i === ult ? "disabled" : ""} aria-label="Descer ${esc(c.nome)}">↓</button><button class="btn small" data-action="rotaTirar" data-i="${i}" aria-label="Tirar ${esc(c.nome)} da rota">✕</button></span></li>`;
+          })
+          .join("")}</ol>`
+      : '<p class="empty">Adicione os clientes na ordem em que serão atendidos.</p>'
+  }
+  ${
+    fora.length
+      ? `<div class="row" style="margin-top:12px;align-items:end"><div class="field" style="flex:1;min-width:200px"><label for="rAdd">Adicionar cliente</label><select id="rAdd">${fora
+          .map((c) => `<option value="${esc(c.id)}">${esc(c.nome)}</option>`)
+          .join("")}</select></div><button class="btn" data-action="rotaAdd">Adicionar</button></div>`
+      : x.clientes.length
+        ? ""
+        : '<p class="muted">Nenhum cliente cadastrado. <button class="link" data-action="nav" data-view="clientes">Cadastrar clientes</button></p>'
+  }
+  <div style="margin-top:22px">${rodapeModal("salvarRota", r.id, r.id ? "Salvar rota" : "Criar rota")}</div>`;
+      }
+      async function salvarRota() {
+        lerRota();
+        const r = rotaEd;
+        if (!r.nome) return toast("Informe o nome da rota.");
+        if (!r.funcionarioId) return toast("Escolha o funcionário.");
+        if (!r.dias.length) return toast("Escolha pelo menos um dia da semana.");
+        const b = { nome: r.nome, funcionarioId: r.funcionarioId, dias: r.dias, clientes: r.clientes };
+        await api(r.id ? "PUT" : "POST", r.id ? `/rotas/${encodeURIComponent(r.id)}` : "/rotas", b);
+        rotaEd = null;
+        closeModal();
+        render();
+        toast(r.id ? "Rota salva" : "Rota criada");
+      }
+
+      /* visitas do dia (empresa) */
+      const chipVisita = (s) =>
+        ({
+          pendente: '<span class="chip neutral">Pendente</span>',
+          em_atendimento: '<span class="chip warn">Em atendimento</span>',
+          concluida: '<span class="chip ok">Concluída</span>',
+          nao_realizada: '<span class="chip bad">Não realizada</span>',
+        })[s];
+      const encerrada = (v) => v.status === "concluida" || v.status === "nao_realizada";
+      const linkGps = (g, rot) =>
+        g
+          ? `<a class="link" href="https://www.google.com/maps?q=${Number(g.lat)},${Number(g.lng)}" target="_blank" rel="noopener">${rot}</a>${g.precisao != null ? ` <span class="muted" style="white-space:nowrap">±${Number(g.precisao)} m</span>` : ""}`
+          : `<span class="muted">${rot} sem GPS</span>`;
+      function horario(v) {
+        if (v.chegadaEm && v.fimEm) return `${fmtHora(v.chegadaEm)} às ${fmtHora(v.fimEm)}`;
+        if (v.chegadaEm) return `desde ${fmtHora(v.chegadaEm)}`;
+        return v.fimEm ? fmtHora(v.fimEm) : "—";
+      }
+      V.visitas = (x) => {
+        const vs = x.visitas;
+        const conta = (s) => vs.filter((v) => v.status === s).length;
+        const grupos = [];
+        for (const v of vs) {
+          let g = grupos.find((g) => g.id === v.funcionarioId);
+          if (!g) grupos.push((g = { id: v.funcionarioId, nome: v.funcionarioNome, vs: [] }));
+          g.vs.push(v);
+        }
+        const hoje = x.data === x.hoje;
+        const podeReabrir = isEmp() && hoje;
+        const vazio = hoje ? "Nenhuma visita prevista para hoje." : x.data > x.hoje ? "As visitas aparecem no próprio dia, a partir das rotas." : "Nenhuma visita registrada neste dia.";
+        return `
+  <h1>Visitas</h1>
+  <p class="lead">${diaLongo(x.data)}${hoje ? ", hoje" : ""}.</p>
+  <div class="filters" style="margin-bottom:18px"><div class="field"><label for="fv">Dia</label><input type="date" id="fv" data-filter="visitasData" value="${esc(x.data)}"></div></div>
+  <div class="summary">
+    <div><span>Previstas</span><strong>${vs.length}</strong></div>
+    <div><span>Concluídas</span><strong>${conta("concluida")}</strong></div>
+    <div><span>Não realizadas</span><strong>${conta("nao_realizada")}</strong></div>
+    <div><span>Serviços avulsos</span><strong>${brl(vs.reduce((a, v) => a + v.extras, 0))}</strong></div>
+  </div>
+  ${
+    grupos.length
+      ? grupos
+          .map(
+            (g) => `
+  <div class="spread" style="margin:26px 0 10px"><h2 style="margin:0">${esc(g.nome)}</h2><span class="muted">${g.vs.filter(encerrada).length} de ${g.vs.length} ${plural(g.vs.length, "visita")} ${plural(g.vs.length, "encerrada")}</span></div>
+  <div class="tablewrap cards"><table>
+    <thead><tr><th>Cliente</th><th>Situação</th><th>Horário</th><th>Serviços avulsos</th><th>Local</th>${podeReabrir ? "<th></th>" : ""}</tr></thead>
+    <tbody>${g.vs
+      .map(
+        (v) => `<tr>
+      <td class="c-title">${esc(v.clienteNome)}<span class="sub">${esc(v.rotaNome)}${v.endereco ? ", " + esc(v.endereco) : ""}</span></td>
+      <td data-label="Situação">${chipVisita(v.status)}${v.motivo ? `<span class="sub">${esc(v.motivo)}</span>` : ""}${v.obs ? `<span class="sub">${esc(v.obs)}</span>` : ""}</td>
+      <td data-label="Horário">${horario(v)}</td>
+      <td data-label="Avulsos">${v.itens.length ? `${v.itens.map((i) => esc(i.nome)).join(", ")}<span class="sub">${brl(v.extras)}</span>` : "—"}</td>
+      <td data-label="Local">${[v.chegadaEm ? linkGps(v.chegadaGps, "Chegada") : "", v.fimEm ? linkGps(v.fimGps, v.status === "nao_realizada" ? "Registro" : "Saída") : ""].filter(Boolean).join("<br>") || "—"}</td>
+      ${podeReabrir ? `<td class="c-actions"><div class="actions">${v.status !== "pendente" ? `<button class="link" data-action="reabrirVisita" data-id="${esc(v.id)}">Reabrir</button>` : ""}</div></td>` : ""}
+    </tr>`,
+      )
+      .join("")}</tbody>
+  </table></div>`,
+          )
+          .join("")
+      : `<div class="panel"><p class="empty" style="margin:0">${vazio}${hoje ? ' <button class="link" data-action="nav" data-view="rotas">Ver rotas</button>' : ""}</p></div>`
+  }`;
+      };
+
+      /* minha rota (funcionário) */
+      let campoFoco = null; // visita que o funcionário escolheu atender fora da ordem
+      V.campo = (x) => {
+        const vs = x.visitas;
+        const fechadas = vs.filter(encerrada).length;
+        const emAt = vs.find((v) => v.status === "em_atendimento");
+        const atual = emAt || vs.find((v) => v.id === campoFoco && v.status === "pendente") || vs.find((v) => v.status === "pendente");
+        const classe = (v) => (v.status === "concluida" ? "feito" : v.status === "nao_realizada" ? "falhou" : v === atual ? "agora" : "");
+        return `
+  <h1>Minha rota</h1>
+  <p class="lead">${diaLongo(x.data)}.${vs.length ? ` ${fechadas} de ${vs.length} ${plural(vs.length, "visita")} ${plural(vs.length, "encerrada")}.` : ""}</p>
+  ${vs.length ? `<div class="progress" style="margin-top:-14px"><i style="width:${(fechadas / vs.length) * 100}%"></i></div>` : ""}
+  ${
+    !vs.length
+      ? '<div class="panel"><p class="empty" style="margin:0">Nenhuma visita para hoje.</p></div>'
+      : atual
+        ? cardAtual(atual, vs.indexOf(atual) + 1, vs.length, x.servicos)
+        : '<div class="banner"><b>Rota do dia encerrada</b>Todas as visitas de hoje foram registradas.</div>'
+  }
+  ${
+    vs.length
+      ? `<div class="panel"><h2>Visitas de hoje</h2><ol class="stops">${vs
+          .map(
+            (v, i) =>
+              `<li class="${classe(v)}"><span class="n">${i + 1}</span><span>${esc(v.clienteNome)}<small>${esc(v.endereco || "Sem endereço")}</small></span><span>${
+                v.status === "pendente" && v !== atual && !emAt
+                  ? `<button class="link" data-action="campoFoco" data-id="${esc(v.id)}">Atender agora</button>`
+                  : v === atual ? "" : chipVisita(v.status)
+              }</span></li>`,
+          )
+          .join("")}</ol></div>`
+      : ""
+  }`;
+      };
+      function cardAtual(v, pos, tot, servs) {
+        const end = v.endereco;
+        const q = encodeURIComponent(end || "");
+        const mapas = end
+          ? `<div class="row" style="margin-bottom:14px"><a class="btn" href="https://www.google.com/maps/dir/?api=1&amp;destination=${q}" target="_blank" rel="noopener">Abrir no Google Maps</a><a class="btn" href="https://waze.com/ul?q=${q}&amp;navigate=yes" target="_blank" rel="noopener">Abrir no Waze</a></div>`
+          : "";
+        const tel = v.telefone ? `<br><a class="link" href="tel:${esc(digits(v.telefone))}">${esc(v.telefone)}</a>` : "";
+        const naoDeu = `<div style="text-align:center;margin-top:12px"><button class="link" data-action="campoNao" data-id="${esc(v.id)}">Não foi possível atender</button></div>`;
+        if (v.status === "pendente")
+          return `<div class="panel agora-card">
+    <span class="eyebrow">Próximo cliente, ${pos} de ${tot}</span>
+    <h2>${esc(v.clienteNome)}</h2>
+    <p class="info">${esc(end || "Sem endereço cadastrado")}${tel}</p>
+    ${mapas}
+    <button class="btn primary big" data-action="campoChegada" data-id="${esc(v.id)}">Cheguei no cliente</button>
+    ${naoDeu}
+  </div>`;
+        return `<div class="panel agora-card">
+    <span class="eyebrow">Em atendimento desde ${fmtHora(v.chegadaEm)}, ${pos} de ${tot}</span>
+    <h2>${esc(v.clienteNome)}</h2>
+    <p class="info">${esc(end || "")}${tel}</p>
+    ${
+      servs.length
+        ? `<fieldset class="servs"><legend>O que foi feito além da mensalidade</legend>${servs
+            .map((s) => `<label><input type="checkbox" name="cServ" value="${esc(s.id)}"> ${esc(s.nome)} <span class="v">${brl(s.valor)}</span></label>`)
+            .join("")}</fieldset>`
+        : ""
+    }
+    <div class="field" style="margin-bottom:16px"><label for="cObs">Observação (opcional)</label><textarea id="cObs" maxlength="500" placeholder="Algo que a empresa precisa saber"></textarea></div>
+    <button class="btn primary big" data-action="campoConcluir" data-id="${esc(v.id)}">Concluir atendimento</button>
+    ${naoDeu}
+  </div>`;
+      }
+
+      // GPS é a prova da visita. Sem ele o funcionário pode tentar de novo ou registrar assim mesmo.
+      function pegarGps() {
+        return new Promise((ok) => {
+          if (!navigator.geolocation) return ok(null);
+          navigator.geolocation.getCurrentPosition(
+            (p) => ok({ lat: p.coords.latitude, lng: p.coords.longitude, precisao: p.coords.accuracy }),
+            () => ok(null),
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 },
+          );
+        });
+      }
+      let gpsPend = null;
+      async function comGps(fn) {
+        toast("Pegando a localização…");
+        const gps = await pegarGps();
+        if (gps) return fn(gps);
+        gpsPend = fn;
+        openModal(
+          `<h2>Sem localização</h2><p class="muted">Não consegui a localização do celular. Confira se o GPS está ligado e se o navegador pode usar a localização.</p><div class="row" style="justify-content:flex-end"><button class="btn" data-action="gpsSem">Registrar sem localização</button><button class="btn primary" data-action="gpsTentar">Tentar de novo</button></div>`,
+        );
+      }
+      const urlVisita = (id, acao) => `/campo/visitas/${encodeURIComponent(id)}/${acao}`;
+
+      /* faturamento mensal */
+      const chipEnvio = (e) =>
+        ({
+          pendente: '<span class="chip neutral">Na fila</span>',
+          enviado: '<span class="chip ok">Enviado</span>',
+          erro: '<span class="chip bad">Não enviado</span>',
+        })[e.status];
+      V.faturamento = (x) => {
+        const cfg = x.config;
+        const aFaturar = x.clientes.filter((c) => !c.fatura && c.total > 0);
+        const faturados = x.clientes.filter((c) => c.fatura).length;
+        const soma = (k) => aFaturar.reduce((a, c) => a + c[k], 0);
+        const avulsos = (c) =>
+          c.itens.length ? `${c.itens.map((i) => esc(i.nome) + (i.qtd > 1 ? ` (${i.qtd}x)` : "")).join(", ")}<span class="sub">${brl(c.extras)}${c.fatura ? ", entra na próxima nota" : ""}</span>` : "—";
+        const situacao = (c) =>
+          c.fatura
+            ? `${chipNota({ status: c.fatura.status, numero: c.fatura.numero })}`
+            : c.total > 0
+              ? '<span class="chip neutral">A faturar</span>'
+              : '<span class="muted">Nada a cobrar</span>';
+        const pendentes = x.envios.filter((e) => e.status === "pendente").length;
+        return `
+  <h1>Faturamento mensal</h1>
+  <p class="lead">Uma nota por cliente com a mensalidade do plano mais os serviços avulsos marcados nas visitas e ainda não cobrados. ${monthLabel(x.mes)}.</p>
+  ${certAlerta()}
+  <div class="panel" style="margin-bottom:20px"><h2>Emissão automática</h2>
+    <div class="form">
+      <div class="field"><label for="fDia">Dia do mês</label><select id="fDia"><option value="">Desligada</option>${Array.from({ length: 31 }, (_, i) => i + 1)
+        .map((d) => `<option value="${d}" ${cfg.diaEmissao === d ? "selected" : ""}>Dia ${d}</option>`)
+        .join("")}</select></div>
+      <label class="check"><input type="checkbox" id="fEmail" ${cfg.enviarEmail ? "checked" : ""}> Enviar a nota por e-mail ao cliente quando for autorizada</label>
+    </div>
+    <p class="muted" style="margin:12px 0 0">${
+      cfg.proxima
+        ? `Próxima emissão automática em <b>${fmtDate(cfg.proxima)}</b>. Se o sistema não rodar no dia, tenta nos ${cfg.toleranciaDias} dias seguintes. Dias 29 a 31 viram o último dia nos meses mais curtos.`
+        : "Com a emissão automática desligada, use Emitir agora."
+    }</p>
+    ${cfg.enviarEmail && !x.emailConfigurado ? '<div class="alert" style="margin:14px 0 0"><span><b>E-mail ainda não configurado no servidor.</b> As notas ficam na fila de envio até RESEND_API_KEY e EMAIL_REMETENTE serem configurados.</span></div>' : ""}
+    <div class="row" style="margin-top:14px"><button class="btn" data-action="salvarFat">Salvar</button></div>
+  </div>
+  <div class="summary">
+    <div><span>Clientes a faturar</span><strong>${aFaturar.length}</strong></div>
+    <div><span>Mensalidades</span><strong>${brl(soma("mensalidade"))}</strong></div>
+    <div><span>Serviços avulsos</span><strong>${brl(soma("extras"))}</strong></div>
+    <div><span>Total a faturar</span><strong>${brl(soma("total"))}</strong></div>
+  </div>
+  <div class="spread"><span class="muted">${faturados ? `${faturados} ${plural(faturados, "cliente já faturado", "clientes já faturados")} neste mês` : ""}</span><div class="row"><button class="btn primary" data-action="emitirFat" ${aFaturar.length ? "" : "disabled"}>Emitir agora</button></div></div>
+  ${
+    x.clientes.length
+      ? `<div class="tablewrap cards"><table>
+    <thead><tr><th>Cliente</th><th>Plano</th><th>Serviços avulsos</th><th class="num">A faturar</th><th>Situação</th></tr></thead>
+    <tbody>${x.clientes
+      .map(
+        (c) => `<tr>
+      <td class="c-title">${esc(c.nome)}<span class="sub">${c.email ? esc(c.email) : "Sem e-mail: a nota não é enviada"}</span></td>
+      <td data-label="Plano">${c.plano ? `${esc(c.plano)}${c.mensalidade ? `<span class="sub">${brl(c.mensalidade)}</span>` : ""}` : '<span class="muted">Sem plano</span>'}</td>
+      <td data-label="Avulsos">${avulsos(c)}</td>
+      <td class="num" data-label="A faturar">${c.fatura ? "—" : brl(c.total)}</td>
+      <td data-label="Situação">${situacao(c)}</td>
+    </tr>`,
+      )
+      .join("")}</tbody>
+  </table></div>`
+      : '<div class="panel"><p class="empty" style="margin:0">Nenhum cliente cadastrado. <button class="link" data-action="nav" data-view="clientes">Cadastrar clientes</button></p></div>'
+  }
+  ${
+    x.envios.length
+      ? `<div class="spread" style="margin:30px 0 10px"><h2 style="margin:0">E-mails das notas</h2>${pendentes && x.emailConfigurado ? '<button class="btn small" data-action="enviarPendentes">Enviar pendentes agora</button>' : ""}</div>
+  <div class="tablewrap cards"><table>
+    <thead><tr><th>Nota</th><th>Para</th><th>Situação</th><th></th></tr></thead>
+    <tbody>${x.envios
+      .map(
+        (e) => `<tr>
+      <td class="c-title">NFS-e nº ${esc(e.numero || "")}<span class="sub">${esc(e.cliente)}</span></td>
+      <td data-label="Para">${esc(e.para)}</td>
+      <td data-label="Situação">${chipEnvio(e)}${e.status === "enviado" ? `<span class="sub">em ${fmtDateTime(e.enviadoEm)}</span>` : e.ultimoErro ? `<span class="sub">${esc(e.ultimoErro)}</span>` : ""}</td>
+      <td class="c-actions"><div class="actions">${e.status !== "pendente" ? `<button class="link" data-action="reenviarEmail" data-id="${esc(e.id)}">Reenviar</button>` : ""}</div></td>
+    </tr>`,
+      )
+      .join("")}</tbody>
+  </table></div>`
+      : ""
+  }`;
+      };
+      const listaIgnorados = (ig) =>
+        `<ul class="list">${ig.map((i) => `<li><span>${esc(i.cliente)}<small>${i.erros.map(esc).join(". ")}</small></span></li>`).join("")}</ul>`;
+
+      const ACOES_CAMPO = {
+        salvarFat: async () => {
+          const dia = val("fDia");
+          const r = await api("PUT", "/faturamento/config", { diaEmissao: dia ? Number(dia) : null, enviarEmail: document.getElementById("fEmail").checked });
+          render();
+          toast(r.proxima ? `Próxima emissão automática em ${fmtDate(r.proxima)}` : "Emissão automática desligada");
+        },
+        emitirFat: () => {
+          const l = dados.clientes.filter((c) => !c.fatura && c.total > 0);
+          const tot = l.reduce((a, c) => a + c.total, 0);
+          openModal(
+            `<h2>Emitir ${l.length} ${plural(l.length, "nota")}?</h2><p class="muted">Total de ${brl(tot)}. As notas entram na fila e vão para a Sefin agora. Quem já foi faturado neste mês fica de fora.</p>${rodapeModal("confirmaEmitirFat", "", "Emitir notas")}`,
+          );
+        },
+        confirmaEmitirFat: async () => {
+          const r = await api("POST", "/faturamento/emitir", {});
+          closeModal();
+          if (!r.lote) {
+            if (r.ignorados.length) openModal(`<h2>Nenhuma nota emitida</h2><p class="muted">Estes cadastros precisam de ajuste antes:</p>${listaIgnorados(r.ignorados)}<div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="fechar">Fechar</button></div>`);
+            else toast("Nada a faturar.");
+            return render();
+          }
+          batch = { phase: "lote", loteId: r.lote.id, fileName: r.lote.arquivo, resumo: r.lote, notas: [], ignoradas: [] };
+          view = "lote";
+          await atualizarLote(batch);
+          await render();
+          processarLote(batch);
+          if (r.ignorados.length)
+            openModal(`<h2>${r.ignorados.length} ${plural(r.ignorados.length, "cliente ficou", "clientes ficaram")} de fora</h2><p class="muted">As outras notas já estão sendo enviadas. Ajuste estes cadastros e use Emitir agora de novo.</p>${listaIgnorados(r.ignorados)}<div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="fechar">Fechar</button></div>`);
+        },
+        enviarPendentes: async () => {
+          const r = await api("POST", "/faturamento/envios/processar", {});
+          render();
+          toast(r.falhas ? `${r.enviados} ${plural(r.enviados, "enviado")}, ${r.falhas} com falha` : `${r.enviados} ${plural(r.enviados, "e-mail enviado", "e-mails enviados")}`);
+        },
+        reenviarEmail: (a) => {
+          const e = achar(dados.envios, a.dataset.id);
+          if (!e) return;
+          openModal(
+            `<h2>Reenviar a NFS-e nº ${esc(e.numero || "")}</h2><p class="muted">O e-mail sai de novo com o XML anexo. Troque o endereço se o cliente pediu outro.</p><div class="field" style="margin:14px 0 20px"><label for="rePara">Para</label><input id="rePara" type="email" maxlength="254" value="${esc(e.para)}"></div>${rodapeModal("confirmaReenvio", e.id, "Reenviar")}`,
+          );
+        },
+        confirmaReenvio: async (a) => {
+          const para = val("rePara").toLowerCase();
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(para)) return toast("Informe um e-mail válido.");
+          const r = await api("POST", `/faturamento/envios/${encodeURIComponent(a.dataset.id)}/reenviar`, { para });
+          closeModal();
+          render();
+          toast(r.configurado ? (r.enviados ? "E-mail enviado" : "Não foi possível enviar agora; tenta de novo mais tarde") : "E-mail na fila; falta configurar o envio no servidor");
+        },
+        novoCliente: () => formCliente(null),
+        editarCliente: (a) => formCliente(achar(dados.clientes, a.dataset.id)),
+        salvarCliente: (a) => salvarCliente(a.dataset.id),
+        delCliente: (a) => {
+          const c = achar(dados.clientes, a.dataset.id);
+          if (c)
+            confirmarRemocao(`Remover ${esc(c.nome)}?`, "O cliente sai das rotas. As visitas já registradas continuam no histórico.", `/clientes/${encodeURIComponent(c.id)}`, "Cliente removido", "Remover cliente");
+        },
+        novoPlano: () => formPlano(null),
+        editarPlano: (a) => formPlano(achar(dados.planos, a.dataset.id)),
+        salvarPlano: (a) => salvarCatalogo("/planos", a.dataset.id, { nome: val("plNome"), valor: Math.round(parseNum(val("plValor")) * 100) / 100, descricao: val("plDesc") }, "Plano salvo"),
+        delPlano: (a) => {
+          const p = achar(dados.planos, a.dataset.id);
+          if (p) confirmarRemocao(`Remover o plano ${esc(p.nome)}?`, "Clientes com este plano precisam trocar de plano antes.", `/planos/${encodeURIComponent(p.id)}`, "Plano removido", "Remover plano");
+        },
+        novoServico: () => formServico(null),
+        editarServico: (a) => formServico(achar(dados.servicos, a.dataset.id)),
+        salvarServico: (a) => salvarCatalogo("/servicos", a.dataset.id, { nome: val("svNome"), valor: Math.round(parseNum(val("svValor")) * 100) / 100 }, "Serviço salvo"),
+        delServico: (a) => {
+          const s = achar(dados.servicos, a.dataset.id);
+          if (s) confirmarRemocao(`Remover ${esc(s.nome)}?`, "Ele deixa de aparecer para o funcionário. As visitas já registradas não mudam.", `/servicos/${encodeURIComponent(s.id)}`, "Serviço removido", "Remover serviço");
+        },
+        confirmaDel: async (a) => {
+          await api("DELETE", a.dataset.url);
+          closeModal();
+          render();
+          toast(a.dataset.msg);
+        },
+        novaRota: () => abrirRota(null),
+        editarRota: (a) => abrirRota(achar(dados.rotas, a.dataset.id)),
+        rotaMover: (a) => {
+          lerRota();
+          const l = rotaEd.clientes,
+            i = +a.dataset.i,
+            j = i + +a.dataset.d;
+          if (j < 0 || j >= l.length) return;
+          [l[i], l[j]] = [l[j], l[i]];
+          redesenharRota();
+        },
+        rotaTirar: (a) => {
+          lerRota();
+          rotaEd.clientes.splice(+a.dataset.i, 1);
+          redesenharRota();
+        },
+        rotaAdd: () => {
+          lerRota();
+          const id = val("rAdd");
+          if (id) rotaEd.clientes.push(id);
+          redesenharRota();
+        },
+        salvarRota: () => salvarRota(),
+        delRota: (a) => {
+          const r = achar(dados.rotas, a.dataset.id);
+          if (r) confirmarRemocao(`Remover a rota ${esc(r.nome)}?`, "As visitas pendentes de hoje somem. As já registradas continuam no histórico.", `/rotas/${encodeURIComponent(r.id)}`, "Rota removida", "Remover rota");
+        },
+        reabrirVisita: (a) => {
+          const v = achar(dados.visitas, a.dataset.id);
+          if (v)
+            openModal(
+              `<h2>Reabrir a visita de ${esc(v.clienteNome)}?</h2><p class="muted">Os horários, a localização e os serviços marcados são apagados e a visita volta a ficar pendente para ${esc(v.funcionarioNome)}. O registro anterior fica na auditoria.</p>${rodapeModal("confirmaReabrir", v.id, "Reabrir visita")}`,
+            );
+        },
+        confirmaReabrir: async (a) => {
+          await api("POST", `/visitas/${encodeURIComponent(a.dataset.id)}/reabrir`, {});
+          closeModal();
+          render();
+          toast("Visita reaberta");
+        },
+        campoFoco: (a) => {
+          campoFoco = a.dataset.id;
+          redesenhar();
+          window.scrollTo(0, 0);
+        },
+        campoChegada: (a) =>
+          comGps(async (gps) => {
+            await api("POST", urlVisita(a.dataset.id, "chegada"), { gps });
+            render();
+            toast("Chegada registrada");
+          }),
+        campoConcluir: (a) => {
+          const servicos = [...document.querySelectorAll("input[name=cServ]:checked")].map((i) => i.value);
+          const obs = val("cObs");
+          return comGps(async (gps) => {
+            await api("POST", urlVisita(a.dataset.id, "concluir"), { gps, servicos, obs });
+            campoFoco = null;
+            await render();
+            window.scrollTo(0, 0);
+            toast("Atendimento concluído");
+          });
+        },
+        campoNao: (a) =>
+          openModal(
+            `<h2>Não foi possível atender</h2><p class="muted">Conte o motivo. A empresa vê esse registro.</p><div class="field" style="margin:14px 0 20px"><label for="cMotivo">Motivo</label><textarea id="cMotivo" maxlength="300" placeholder="Ex.: cliente ausente, portão fechado"></textarea></div>${rodapeModal("campoNaoConfirma", a.dataset.id, "Registrar")}`,
+          ),
+        campoNaoConfirma: (a) => {
+          const motivo = val("cMotivo");
+          if (!motivo) return toast("Conte por que a visita não foi feita.");
+          closeModal();
+          return comGps(async (gps) => {
+            await api("POST", urlVisita(a.dataset.id, "nao-realizada"), { gps, motivo });
+            campoFoco = null;
+            await render();
+            window.scrollTo(0, 0);
+            toast("Visita registrada como não realizada");
+          });
+        },
+        gpsTentar: async () => {
+          const fn = gpsPend;
+          closeModal();
+          if (fn) await comGps(fn);
+        },
+        gpsSem: async () => {
+          const fn = gpsPend;
+          gpsPend = null;
+          closeModal();
+          if (fn) await fn(null);
+        },
+      };
+      const SO_EMPRESA_CAMPO = [
+        "novoCliente", "editarCliente", "salvarCliente", "delCliente", "novoPlano", "editarPlano",
+        "salvarPlano", "delPlano", "novoServico", "editarServico", "salvarServico", "delServico",
+        "confirmaDel", "novaRota", "editarRota", "rotaMover", "rotaTirar", "rotaAdd", "salvarRota",
+        "delRota", "reabrirVisita", "confirmaReabrir", "salvarFat", "emitirFat", "confirmaEmitirFat",
+        "enviarPendentes", "reenviarEmail", "confirmaReenvio",
+      ];
+
       /* ---------- eventos ---------- */
       const ACOES = {
         logout: () => sair(),
@@ -3097,7 +3920,9 @@
         "modelo", "exemplo", "emitir", "continuarLote", "reprocessar", "cancelar",
         "confirmaCancel", "verificarCanc", "receber", "desfazRec", "addPagar", "pagar",
         "desfazPag", "delPagar", "salvarCfg", "addUser", "delUser", "confirmaDelUser", "verCert",
+        ...SO_EMPRESA_CAMPO,
       ]);
+      Object.assign(ACOES, ACOES_CAMPO);
       document.addEventListener("click", async (e) => {
         const a = e.target.closest("[data-action]");
         if (!a) return;

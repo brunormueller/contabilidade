@@ -13,6 +13,12 @@ const schema = z.object({
   // o manual não fixa o algoritmo da assinatura; ver src/nfse/assinatura.ts
   NFSE_ASSINATURA: z.enum(["sha1", "sha256"]).default("sha256"),
   CRON_SECRET: z.string().optional(),
+  // e-mail da nota para o cliente (Resend). Sem os dois, os envios esperam na fila.
+  RESEND_API_KEY: z.string().optional(),
+  // ex.: "Minha Empresa <notas@minhaempresa.com.br>"; o domínio precisa estar verificado no Resend
+  EMAIL_REMETENTE: z.string().optional(),
+  // para onde vão as respostas do cliente (opcional)
+  EMAIL_RESPONDER_PARA: z.string().optional(),
 });
 
 export type Env = z.infer<typeof schema>;

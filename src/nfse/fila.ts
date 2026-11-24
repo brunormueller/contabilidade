@@ -3,12 +3,12 @@
 // - uma nota só é enviada por quem tem o lease dela (FOR UPDATE SKIP LOCKED + leaseAte);
 // - toda nota que já foi tentada consulta GET /dps/{id} antes de reenviar, então timeout ou
 //   queda no meio do envio nunca vira nota em dobro;
-// - autorização, documentos e conta a receber entram na mesma transação.
+// - autorização, documentos, conta a receber e e-mail para o tomador entram na mesma transação.
 import { createHash } from "node:crypto";
 import { and, asc, eq, inArray, lt, lte, or } from "drizzle-orm";
 import { abrirCertificado } from "../cert/certificado.js";
 import type { DB, Tx } from "../db/client.js";
-import { notaDocumentos, notas, receber } from "../db/schema.js";
+import { empresa, envios, notaDocumentos, notas, receber } from "../db/schema.js";
 import { carregarEmpresa } from "../domain/empresa.js";
 import { empresaDps, notaDps } from "../domain/lotes.js";
 import { env, type Ambiente } from "../env.js";
@@ -182,6 +182,10 @@ async function concluir(d: DB, n: Nota, lease: Date, status: Nota["status"], set
         .insert(receber)
         .values({ empresaId: n.empresaId, ambiente: n.ambiente, notaId: n.id, descricao: `NFS-e nº ${nfse.nNfse}`, cliente: n.tomadorNome, valor: n.vLiq, venc: n.vencimento })
         .onConflictDoNothing({ target: receber.notaId });
+    if (nfse && n.tomadorEmail) {
+      const [e] = await tx.select({ enviar: empresa.enviarEmail }).from(empresa).where(eq(empresa.id, n.empresaId));
+      if (e?.enviar) await tx.insert(envios).values({ empresaId: n.empresaId, notaId: n.id, para: n.tomadorEmail }).onConflictDoNothing({ target: envios.notaId });
+    }
     return true;
   });
   if (!ok) log.warn("lease perdido; resultado descartado", { notaId: n.id, status });
