@@ -2774,7 +2774,7 @@
       <td class="c-title">${esc(n.tomador.nome)}<span class="sub">${esc(fmtDoc(n.tomador.doc))}</span></td>
       <td class="num" data-label="Valor">${brl(n.valor)}</td>
       <td data-label="Situação">${chipEmitida(n)}${n.status === "autorizada" && n.erro ? `<span class="sub">${esc(n.erro.mensagem)}</span>` : ""}</td>
-      <td class="c-actions"><div class="actions"><button class="link" data-action="ver" data-id="${esc(n.id)}">Ver</button><button class="link" data-action="xml" data-id="${esc(n.id)}">XML</button>${isEmp() && n.status === "autorizada" ? `<button class="link bad" data-action="cancelar" data-id="${esc(n.id)}">Cancelar</button>` : ""}${isEmp() && n.status === "cancelamento_pendente" ? `<button class="link" data-action="verificarCanc" data-id="${esc(n.id)}">Verificar cancelamento</button>` : ""}</div></td>
+      <td class="c-actions"><div class="actions"><button class="link" data-action="ver" data-id="${esc(n.id)}">Ver</button><button class="link" data-action="pdf" data-id="${esc(n.id)}" data-num="${esc(n.numero || "")}">PDF</button><button class="link" data-action="xml" data-id="${esc(n.id)}">XML</button>${isEmp() && n.status === "autorizada" ? `<button class="link bad" data-action="cancelar" data-id="${esc(n.id)}">Cancelar</button>` : ""}${isEmp() && n.status === "cancelamento_pendente" ? `<button class="link" data-action="verificarCanc" data-id="${esc(n.id)}">Verificar cancelamento</button>` : ""}</div></td>
     </tr>`,
       )
       .join("")}</tbody>
@@ -2810,7 +2810,7 @@
     }
     <section><h3>Chave de acesso</h3><span class="key">${esc(n.chaveAcesso)}</span></section>
   </div>
-  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="xml" data-id="${esc(n.id)}">Baixar XML</button><button class="btn primary" data-action="fechar">Fechar</button></div>`);
+  <div class="row" style="justify-content:flex-end;margin-top:16px"><button class="btn" data-action="pdf" data-id="${esc(n.id)}" data-num="${esc(n.numero || "")}">Baixar PDF</button><button class="btn" data-action="xml" data-id="${esc(n.id)}">Baixar XML</button><button class="btn primary" data-action="fechar">Fechar</button></div>`);
       }
       async function pedirCancelamento(id) {
         const n = await api("GET", `/notas/${encodeURIComponent(id)}`);
@@ -3898,6 +3898,7 @@
         continuarLote: () => batch && batch.loteId && processarLote(batch),
         reprocessar: () => batch && batch.loteId && reprocessarLote(batch),
         ver: (a) => verNota(a.dataset.id),
+        pdf: (a) => baixarDaApi(`/notas/${encodeURIComponent(a.dataset.id)}/danfse`, `DANFSe-${a.dataset.num}.pdf`),
         xml: async (a) => {
           const arqs = await api("GET", `/notas/${encodeURIComponent(a.dataset.id)}/xmls`);
           await zipArquivos(arqs, `${arqs.length ? arqs[0].nome.replace(/\.xml$/, "") : "NFSe"}.zip`);

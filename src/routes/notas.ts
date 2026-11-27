@@ -6,8 +6,9 @@ import { arquivosXml, cancelarNota, carregarNota, documentosDaNota, FILTROS, not
 import { env } from "../env.js";
 import { auditar } from "../lib/auditoria.js";
 import { MES } from "../lib/datas.js";
-import { invalido } from "../lib/erros.js";
-import { corpo } from "../lib/http.js";
+import { invalido, naoEncontrado } from "../lib/erros.js";
+import { corpo, paramId } from "../lib/http.js";
+import { gerarDanfse } from "../nfse/danfse.js";
 import { MOTIVOS_CANCELAMENTO } from "../nfse/evento.js";
 import type { AppEnv } from "../tipos.js";
 
@@ -43,6 +44,17 @@ rotaNotas.get("/:id", async (c) => {
 rotaNotas.get("/:id/xmls", async (c) => {
   const d = await db();
   return c.json(await arquivosXml(d, await carregarNota(d, c.get("user").empresaId, c.req.param("id"))));
+});
+
+/** DANFSe em PDF, montado a partir do XML autorizado. */
+rotaNotas.get("/:id/danfse", async (c) => {
+  const d = await db();
+  const n = await carregarNota(d, c.get("user").empresaId, paramId(c, "Nota"));
+  // o primeiro arquivo é a NFS-e; o segundo, quando existe, é o evento de cancelamento
+  const nfse = (await arquivosXml(d, n)).find((a) => !a.nome.includes("cancelamento"));
+  if (!nfse) throw naoEncontrado("XML da NFS-e");
+  const pdf = await gerarDanfse(nfse.xml, { cancelada: n.status === "cancelada" });
+  return c.body(new Uint8Array(pdf), 200, { "Content-Type": "application/pdf", "Content-Disposition": `inline; filename="DANFSe-${n.nNfse ?? n.nDps}.pdf"` });
 });
 
 const Cancelar = z.object({
