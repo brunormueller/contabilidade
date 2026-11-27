@@ -161,7 +161,8 @@ export function clienteSefin(cert: Pick<Pfx, "chavePem" | "certPem" | "cadeiaPem
     },
 
     async consultarDps(idDps) {
-      const { r, falha } = await tentar("GET", `/dps/${encodeURIComponent(idDps)}`);
+      // na URL vão só os 42 números: com o prefixo "DPS" do XML a Sefin responde E2400
+      const { r, falha } = await tentar("GET", `/dps/${encodeURIComponent(idDps.replace(/^DPS/, ""))}`);
       if (!r) return { tipo: "incerto", motivo: falha };
       const chaveAcesso = texto(r.json, "chaveAcesso");
       if (r.http === 200 && chaveAcesso) return { tipo: "existe", chaveAcesso, ...bruto(r) };

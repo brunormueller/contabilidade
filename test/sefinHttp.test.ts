@@ -97,9 +97,10 @@ describe("emitir", () => {
 
 describe("consultas e eventos", () => {
   it("DPS: 200 existe, 404 não existe, o resto é incerto", async () => {
+    const numeros = "4".repeat(42);
     resposta = { http: 200, corpo: { chaveAcesso: CHAVE } };
-    expect(await sefin().consultarDps("DPS1")).toMatchObject({ tipo: "existe", chaveAcesso: CHAVE });
-    expect(pedidos[0]!.url).toBe("/SefinNacional/dps/DPS1");
+    expect(await sefin().consultarDps(`DPS${numeros}`)).toMatchObject({ tipo: "existe", chaveAcesso: CHAVE });
+    expect(pedidos[0]!.url).toBe(`/SefinNacional/dps/${numeros}`);
     resposta = { http: 404, corpo: { erro: { codigo: "E", descricao: "não há" } } };
     expect((await sefin().consultarDps("DPS1")).tipo).toBe("nao_existe");
     resposta = { http: 503, corpo: "" };
