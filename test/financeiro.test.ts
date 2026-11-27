@@ -36,7 +36,7 @@ describe("datas", () => {
 });
 
 describe("contas a receber", () => {
-  it("lista por filtro, marca e desfaz recebimento; contador só lê", async () => {
+  it("lista por filtro, marca e desfaz recebimento; contador não acessa", async () => {
     await notaAutorizada(1, 100_00, addDias(hoje, -3));
     await notaAutorizada(2, 200_00, addDias(hoje, 5));
     await notaAutorizada(3, 999_00, hoje, "producao"); // outro ambiente não aparece
@@ -48,7 +48,7 @@ describe("contas a receber", () => {
     expect(vencidos).toHaveLength(1);
 
     const cont = await comoContador();
-    expect((await cont.get("/api/receber")).status).toBe(200);
+    for (const p of ["/api/receber", "/api/pagar", `/api/exportar/${hoje.slice(0, 7)}`]) expect((await cont.get(p)).status, p).toBe(403);
     expect((await cont.post(`/api/receber/${abertos[0]!.id}/recebido`)).status).toBe(403);
 
     const r = await e.post(`/api/receber/${abertos[0]!.id}/recebido`);
@@ -107,13 +107,17 @@ describe("painel e arquivos do mês", () => {
     await notaAutorizada(2, 1025_00, addDias(hoje, 10));
     await d.insert(pagar).values({ empresaId, descricao: "Luz", categoria: "Outros", valor: 120_00, venc: addDias(hoje, 3) });
     await d.insert(pagar).values({ empresaId, descricao: "Longe", categoria: "Outros", valor: 1_00, venc: addDias(hoje, 30) });
-    const r = (await (await (await comoContador()).get("/api/painel")).json()) as Record<string, unknown>;
+    const cont = await (await (await comoContador()).get("/api/painel")).json();
+    expect(cont).toMatchObject({ faturado: 1875, notasMes: 2 });
+    expect(cont).not.toHaveProperty("aReceberAberto");
+    expect(cont).not.toHaveProperty("pagarSemana");
+    const r = (await (await (await comoEmpresa()).get("/api/painel")).json()) as Record<string, unknown>;
     expect(r).toMatchObject({ faturado: 1875, notasMes: 2, aReceberAberto: 1875, vencidosQtd: 1, pagarSemanaTotal: 120, temNotas: true });
   });
 
   it("CSV de notas sai com BOM, ';' e sem fórmula executável", async () => {
     await notaAutorizada(7, 1200_50, hoje);
-    const r = await (await comoContador()).get(`/api/exportar/${hoje.slice(0, 7)}/notas.csv`);
+    const r = await (await comoEmpresa()).get(`/api/exportar/${hoje.slice(0, 7)}/notas.csv`);
     expect(r.headers.get("content-type")).toMatch(/text\/csv/);
     const bytes = new Uint8Array(await r.arrayBuffer());
     expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // BOM (Response.text() o esconderia)

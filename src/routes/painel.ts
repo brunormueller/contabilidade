@@ -57,17 +57,21 @@ rotaPainel.get("/", async (c) => {
     .limit(1);
 
   const soma = (l: { valor: number }[]) => paraReais(l.reduce((a, t) => a + t.valor, 0));
+  // contas a receber e a pagar não saem para o contador, nem resumidas
+  const financeiro = c.get("user").perfil === "empresa" && {
+    aReceberAberto: soma(abertos),
+    vencidosQtd: vencidos.length,
+    vencidos: vencidos.slice(0, 8).map(receberParaApi),
+    pagarSemanaTotal: soma(pagarSemana),
+    pagarSemana: pagarSemana.map(pagarParaApi),
+  };
   return c.json({
     mes: ym,
     ate: em7,
     faturado: paraReais(Number(mes?.total ?? 0)),
     notasMes: mes?.qtd ?? 0,
     temNotas: (temNotas?.n ?? 0) > 0,
-    aReceberAberto: soma(abertos),
-    vencidosQtd: vencidos.length,
-    vencidos: vencidos.slice(0, 8).map(receberParaApi),
-    pagarSemanaTotal: soma(pagarSemana),
-    pagarSemana: pagarSemana.map(pagarParaApi),
+    ...financeiro,
     ultimoLote: ult ?? null,
   });
 });

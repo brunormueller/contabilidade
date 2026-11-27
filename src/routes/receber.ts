@@ -1,6 +1,7 @@
 import { and, asc, eq, isNotNull, isNull, lt, or, type SQL } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { z } from "zod";
+import { soEmpresa } from "../auth/guard.js";
 import { db } from "../db/client.js";
 import { receber } from "../db/schema.js";
 import { paraReais } from "../domain/dinheiro.js";
@@ -13,6 +14,8 @@ import type { AppEnv } from "../tipos.js";
 import type { Ambiente } from "../env.js";
 
 export const rotaReceber = new Hono<AppEnv>();
+// financeiro e arquivos do mês são só do perfil empresa
+rotaReceber.use("*", soEmpresa);
 
 /** Títulos do ambiente atual. Os sem nota (recibos lançados à parte) são cobrança real e valem nos dois. */
 export const doAmbiente = (amb: Ambiente) => or(isNull(receber.notaId), eq(receber.ambiente, amb));

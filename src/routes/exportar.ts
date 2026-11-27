@@ -1,5 +1,6 @@
 import { and, asc, eq, gte, inArray, lte } from "drizzle-orm";
 import { type Context, Hono } from "hono";
+import { soEmpresa } from "../auth/guard.js";
 import { db } from "../db/client.js";
 import { notas, pagar, receber } from "../db/schema.js";
 import { intParaPct, paraReais } from "../domain/dinheiro.js";
@@ -12,6 +13,8 @@ import type { AppEnv } from "../tipos.js";
 import { doAmbiente } from "./receber.js";
 
 export const rotaExportar = new Hono<AppEnv>();
+// financeiro e arquivos do mês são só do perfil empresa
+rotaExportar.use("*", soEmpresa);
 
 const fmtDH = new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo", dateStyle: "short", timeStyle: "short" });
 const fmtServ = (s: string) => (s.length === 6 ? `${s.slice(0, 2)}.${s.slice(2, 4)}.${s.slice(4)}` : s);

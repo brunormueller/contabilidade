@@ -1919,14 +1919,14 @@
         ["lote", "Emitir em lote", ["empresa", "contador"]],
         ["faturamento", "Faturamento mensal", ["empresa"]],
         ["notas", "Notas emitidas", ["empresa", "contador"]],
-        ["receber", "A receber", ["empresa", "contador"]],
-        ["pagar", "A pagar", ["empresa", "contador"]],
+        ["receber", "A receber", ["empresa"]],
+        ["pagar", "A pagar", ["empresa"]],
         ["visitas", "Visitas", ["empresa"]],
         ["rotas", "Rotas", ["empresa"]],
         ["clientes", "Clientes", ["empresa"]],
         ["planos", "Planos e serviços", ["empresa"]],
         ["campo", "Minha rota", ["funcionario"]],
-        ["exportar", "Arquivos do mês", ["empresa", "contador"]],
+        ["exportar", "Arquivos do mês", ["empresa"]],
         ["usuarios", "Usuários", ["empresa"]],
         ["config", "Empresa e certificado", ["empresa"]],
       ];
@@ -2225,14 +2225,14 @@
   <h1>Olá, ${esc(me.nome.split(" ")[0])}</h1>
   <p class="lead">${monthLabel(p.mes)}${ult ? `. Último lote enviado em ${fmtDateTime(ult.data)} com ${ult.qtd} ${plural(ult.qtd, "nota")}.` : "."}</p>
   ${certAlerta()}
-  <div class="summary">
+  <div class="summary"${isEmp() ? "" : ' style="grid-template-columns:repeat(2,minmax(0,1fr))"'}>
     <div><span>Faturado no mês</span><strong>${brl(p.faturado)}</strong></div>
     <div><span>Notas no mês</span><strong>${p.notasMes}</strong></div>
-    <div><span>A receber em aberto</span><strong>${brl(p.aReceberAberto)}</strong>${p.vencidosQtd ? `<em>${p.vencidosQtd} ${plural(p.vencidosQtd, "vencido")}</em>` : ""}</div>
-    <div><span>A pagar em 7 dias</span><strong>${brl(p.pagarSemanaTotal)}</strong></div>
+    ${isEmp() ? `<div><span>A receber em aberto</span><strong>${brl(p.aReceberAberto)}</strong>${p.vencidosQtd ? `<em>${p.vencidosQtd} ${plural(p.vencidosQtd, "vencido")}</em>` : ""}</div>
+    <div><span>A pagar em 7 dias</span><strong>${brl(p.pagarSemanaTotal)}</strong></div>` : ""}
   </div>
   ${!p.temNotas && podeEmitir() ? `<div class="panel" style="margin-bottom:18px"><h2>Nenhuma nota emitida ainda</h2><p class="muted" style="margin:0 0 12px">Envie a planilha do mês para emitir todas as notas de uma vez.</p><button class="btn primary" data-action="nav" data-view="lote">Emitir notas em lote</button></div>` : ""}
-  <div class="grid2">
+  ${!isEmp() ? "" : `<div class="grid2">
     <div class="panel"><h2>Contas a pagar até ${fmtDate(p.ate)}</h2>
       ${p.pagarSemana.length ? `<ul class="list">${p.pagarSemana.map((t) => `<li><span>${esc(t.descricao)}<small>${fmtDate(t.venc)}${t.venc < hoje ? ", vencida" : ""}</small></span><b>${brl(t.valor)}</b></li>`).join("")}</ul>` : '<p class="empty">Nada para pagar nos próximos dias.</p>'}
     </div>
@@ -2248,7 +2248,7 @@
           : '<p class="empty">Nenhum recebimento vencido.</p>'
       }
     </div>
-  </div>`;
+  </div>`}`;
       };
 
       /* --- lote --- */
@@ -2971,7 +2971,7 @@
       /* --- usuários --- */
       V.usuarios = (users) => `
   <h1>Usuários</h1>
-  <p class="lead">O perfil contador importa a planilha e emite em lote; o resto ele só consulta. O funcionário só vê a própria rota do dia.</p>
+  <p class="lead">O perfil contador importa a planilha e emite em lote; além disso só consulta o painel e as notas. O funcionário só vê a própria rota do dia.</p>
   <div class="tablewrap cards" style="margin-bottom:20px"><table>
     <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th></th></tr></thead>
     <tbody>${users

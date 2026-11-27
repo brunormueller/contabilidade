@@ -1,6 +1,7 @@
 import { and, asc, eq, isNotNull, isNull, lt, type SQL } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { z } from "zod";
+import { soEmpresa } from "../auth/guard.js";
 import { db } from "../db/client.js";
 import { pagar } from "../db/schema.js";
 import { paraCentavos, paraReais } from "../domain/dinheiro.js";
@@ -13,6 +14,8 @@ import type { AppEnv } from "../tipos.js";
 export const CATEGORIAS = ["Aluguel", "Fornecedores", "Impostos", "Folha de pagamento", "Serviços e assinaturas", "Outros"] as const;
 
 export const rotaPagar = new Hono<AppEnv>();
+// financeiro e arquivos do mês são só do perfil empresa
+rotaPagar.use("*", soEmpresa);
 
 export const pagarParaApi = (t: typeof pagar.$inferSelect) => ({
   id: t.id,
