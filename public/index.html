@@ -1916,7 +1916,7 @@
         `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${IC[k]}</svg>`;
       const NAV = [
         ["painel", "Painel", ["empresa", "contador"]],
-        ["lote", "Emitir em lote", ["empresa"]],
+        ["lote", "Emitir em lote", ["empresa", "contador"]],
         ["faturamento", "Faturamento mensal", ["empresa"]],
         ["notas", "Notas emitidas", ["empresa", "contador"]],
         ["receber", "A receber", ["empresa", "contador"]],
@@ -1931,6 +1931,7 @@
         ["config", "Empresa e certificado", ["empresa"]],
       ];
       const isEmp = () => me && me.perfil === "empresa";
+      const podeEmitir = () => me && (me.perfil === "empresa" || me.perfil === "contador");
       const iniciais = (n) =>
         String(n || "?")
           .trim()
@@ -1972,7 +1973,7 @@
         document.getElementById("meNome").textContent = me.nome;
         document.getElementById("mePerfil").textContent = {
           empresa: "Empresa",
-          contador: "Contador, somente leitura",
+          contador: "Contador",
           funcionario: "Funcionário",
         }[me.perfil];
       }
@@ -2230,7 +2231,7 @@
     <div><span>A receber em aberto</span><strong>${brl(p.aReceberAberto)}</strong>${p.vencidosQtd ? `<em>${p.vencidosQtd} ${plural(p.vencidosQtd, "vencido")}</em>` : ""}</div>
     <div><span>A pagar em 7 dias</span><strong>${brl(p.pagarSemanaTotal)}</strong></div>
   </div>
-  ${!p.temNotas && isEmp() ? `<div class="panel" style="margin-bottom:18px"><h2>Nenhuma nota emitida ainda</h2><p class="muted" style="margin:0 0 12px">Envie a planilha do mês para emitir todas as notas de uma vez.</p><button class="btn primary" data-action="nav" data-view="lote">Emitir notas em lote</button></div>` : ""}
+  ${!p.temNotas && podeEmitir() ? `<div class="panel" style="margin-bottom:18px"><h2>Nenhuma nota emitida ainda</h2><p class="muted" style="margin:0 0 12px">Envie a planilha do mês para emitir todas as notas de uma vez.</p><button class="btn primary" data-action="nav" data-view="lote">Emitir notas em lote</button></div>` : ""}
   <div class="grid2">
     <div class="panel"><h2>Contas a pagar até ${fmtDate(p.ate)}</h2>
       ${p.pagarSemana.length ? `<ul class="list">${p.pagarSemana.map((t) => `<li><span>${esc(t.descricao)}<small>${fmtDate(t.venc)}${t.venc < hoje ? ", vencida" : ""}</small></span><b>${brl(t.valor)}</b></li>`).join("")}</ul>` : '<p class="empty">Nada para pagar nos próximos dias.</p>'}
@@ -2742,7 +2743,7 @@
       .join("")}</tbody>
     <tfoot><tr><td colspan="3">${list.length} ${plural(list.length, "nota")}</td><td class="num">${brl(tot)}</td><td colspan="2"></td></tr></tfoot>
   </table></div>`
-      : `<div class="panel"><p class="empty" style="margin:0">Nenhuma nota em ${monthLabel(F.notasMes).toLowerCase()}.${isEmp() ? ' <button class="link" data-action="nav" data-view="lote">Emitir um lote</button>' : ""}</p></div>`
+      : `<div class="panel"><p class="empty" style="margin:0">Nenhuma nota em ${monthLabel(F.notasMes).toLowerCase()}.${podeEmitir() ? ' <button class="link" data-action="nav" data-view="lote">Emitir um lote</button>' : ""}</p></div>`
   }`;
       };
       const MOTIVOS = [
@@ -2970,7 +2971,7 @@
       /* --- usuários --- */
       V.usuarios = (users) => `
   <h1>Usuários</h1>
-  <p class="lead">O perfil contador consulta notas, financeiro e arquivos, sem emitir nem alterar. O funcionário só vê a própria rota do dia.</p>
+  <p class="lead">O perfil contador importa a planilha e emite em lote; o resto ele só consulta. O funcionário só vê a própria rota do dia.</p>
   <div class="tablewrap cards" style="margin-bottom:20px"><table>
     <thead><tr><th>Nome</th><th>E-mail</th><th>Perfil</th><th></th></tr></thead>
     <tbody>${users
@@ -2987,7 +2988,7 @@
     <div class="form">
       <div class="field"><label for="uNome">Nome</label><input id="uNome" maxlength="120"></div>
       <div class="field"><label for="uEmail">E-mail</label><input id="uEmail" type="email" autocomplete="off"></div>
-      <div class="field"><label for="uPerfil">Perfil</label><select id="uPerfil"><option value="contador">Contador, somente leitura</option><option value="funcionario">Funcionário, só a própria rota</option><option value="empresa">Empresa, acesso completo</option></select></div>
+      <div class="field"><label for="uPerfil">Perfil</label><select id="uPerfil"><option value="contador">Contador, emite e consulta</option><option value="funcionario">Funcionário, só a própria rota</option><option value="empresa">Empresa, acesso completo</option></select></div>
       <div class="field"><label for="uSenha">Senha inicial</label><input id="uSenha" type="password" autocomplete="new-password" placeholder="Mínimo de 8 caracteres"></div>
     </div>
     <div class="row" style="margin-top:16px"><button class="btn primary" data-action="addUser">Adicionar usuário</button></div>
@@ -3917,7 +3918,7 @@
       };
       // O servidor é quem decide o que cada perfil pode; aqui só evita o clique inútil.
       const SO_EMPRESA = new Set([
-        "modelo", "exemplo", "emitir", "continuarLote", "reprocessar", "cancelar",
+        "cancelar",
         "confirmaCancel", "verificarCanc", "receber", "desfazRec", "addPagar", "pagar",
         "desfazPag", "delPagar", "salvarCfg", "addUser", "delUser", "confirmaDelUser", "verCert",
         ...SO_EMPRESA_CAMPO,
@@ -3943,7 +3944,7 @@
       document.addEventListener("change", (e) => {
         const t = e.target;
         if (t.id === "file" && t.files[0]) {
-          if (isEmp()) lerArquivo(t.files[0]);
+          if (podeEmitir()) lerArquivo(t.files[0]);
           return;
         }
         if (t.id === "fotoFile" && t.files[0]) {

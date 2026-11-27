@@ -78,9 +78,10 @@ describe("sessão", () => {
 });
 
 describe("perfis", () => {
-  it("contador não faz escrita nenhuma, nem em rota que nem existe", async () => {
+  it("contador não escreve fora da emissão em lote, nem em rota que nem existe", async () => {
     const c = await comoContador();
-    expect((await c.post("/api/lotes", {})).status).toBe(403);
+    expect((await c.post("/api/faturamento/emitir", {})).status).toBe(403);
+    expect((await c.post("/api/lotes-outra", {})).status).toBe(403);
     expect((await c.put("/api/empresa", {})).status).toBe(403);
     expect((await c.del("/api/pagar/x")).status).toBe(403);
   });

@@ -114,7 +114,7 @@ describe("validarLinhas", () => {
 });
 
 describe("POST /api/lotes/validar", () => {
-  it("usa os padrões cadastrados da empresa; contador não pode", async () => {
+  it("usa os padrões cadastrados da empresa; contador também confere", async () => {
     await cenarioBase();
     const e = await comoEmpresa();
     await e.put("/api/empresa", { razao: "X", cnpj: "11222333000181", cServPadrao: "17.19.01", cNBSPadrao: "", aliqIss: 3, vencDias: 5, serie: "900", proxDPS: 1 });
@@ -122,7 +122,7 @@ describe("POST /api/lotes/validar", () => {
     expect(r.status).toBe(200);
     const b = (await r.json()) as { rows: { cServ: string; aliqIss: number; errors: string[] }[] };
     expect(b.rows[0]).toMatchObject({ cServ: "171901", aliqIss: 3, errors: [] });
-    expect((await (await comoContador()).post("/api/lotes/validar", { linhas: [ok] })).status).toBe(403);
+    expect((await (await comoContador()).post("/api/lotes/validar", { linhas: [ok] })).status).toBe(200);
   });
 
   it("recusa mais de 500 linhas", async () => {

@@ -9,6 +9,8 @@ const PUBLICAS = new Set(["/api/health", "/api/auth/login", "/api/cron/processar
 // Escritas que o contador pode fazer: são sobre a própria conta.
 const ESCRITA_LIVRE = new Set(["/api/auth/logout", "/api/auth/senha", "/api/me/foto"]);
 const LEITURA = new Set(["GET", "HEAD"]);
+// O contador é quem emite: pode importar a planilha, enviar e reprocessar o lote.
+const LOTES = /^\/api\/lotes(\/|$)/;
 // Funcionário é o contrário do contador: só enxerga a própria rota e a própria conta.
 const FUNCIONARIO_LEITURA = [/^\/api\/auth\/me$/, /^\/api\/usuarios\/[^/]+\/foto$/];
 const CAMPO = /^\/api\/campo(\/|$)/;
@@ -27,8 +29,8 @@ export const exigirSessao = createMiddleware<AppEnv>(async (c, next) => {
     if (!funcionarioPode(c.req.method, c.req.path)) throw proibido();
     return next();
   }
-  // Contador é somente leitura em tudo. A regra é por padrão: rota nova já nasce protegida.
-  if (u.perfil !== "empresa" && !LEITURA.has(c.req.method) && !ESCRITA_LIVRE.has(c.req.path)) throw proibido();
+  // Contador lê tudo e só escreve na emissão em lote. A regra é por padrão: rota nova já nasce protegida.
+  if (u.perfil !== "empresa" && !LEITURA.has(c.req.method) && !ESCRITA_LIVRE.has(c.req.path) && !LOTES.test(c.req.path)) throw proibido();
   return next();
 });
 

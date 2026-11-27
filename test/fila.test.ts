@@ -75,13 +75,13 @@ describe("criar lote", () => {
     expect((await (await c.get("/api/empresa")).json()) as { proxDPS: number }).toMatchObject({ proxDPS: 1 });
   });
 
-  it("contador não cria, não processa e não reprocessa", async () => {
-    const { lote } = await novoLote();
+  it("contador importa, processa e reprocessa o lote", async () => {
     const k = await comoContador();
-    expect((await k.post("/api/lotes", { chave: randomUUID(), linhas: [linha()] })).status).toBe(403);
-    expect((await k.post(`/api/lotes/${lote.id}/processar`)).status).toBe(403);
-    expect((await k.post(`/api/lotes/${lote.id}/reprocessar`)).status).toBe(403);
-    expect((await k.get(`/api/lotes/${lote.id}`)).status).toBe(200);
+    const r = await k.post("/api/lotes", { chave: randomUUID(), linhas: [linha()] });
+    expect(r.status).toBe(201);
+    const { lote } = (await r.json()) as { lote: Resumo };
+    expect((await k.post(`/api/lotes/${lote.id}/processar`)).status).toBe(200);
+    expect((await k.post(`/api/lotes/${lote.id}/reprocessar`)).status).toBe(200);
   });
 });
 
