@@ -1,4 +1,4 @@
-import { and, asc, eq, isNotNull, isNull, lt, type SQL } from "drizzle-orm";
+import { and, asc, eq, isNotNull, isNull, lt, or, type SQL } from "drizzle-orm";
 import { type Context, Hono } from "hono";
 import { z } from "zod";
 import { db } from "../db/client.js";
@@ -10,8 +10,12 @@ import { diaValido, hojeBR } from "../lib/datas.js";
 import { invalido, naoEncontrado } from "../lib/erros.js";
 import { corpo } from "../lib/http.js";
 import type { AppEnv } from "../tipos.js";
+import type { Ambiente } from "../env.js";
 
 export const rotaReceber = new Hono<AppEnv>();
+
+/** Títulos do ambiente atual. Os sem nota (recibos lançados à parte) são cobrança real e valem nos dois. */
+export const doAmbiente = (amb: Ambiente) => or(isNull(receber.notaId), eq(receber.ambiente, amb));
 
 export const receberParaApi = (t: typeof receber.$inferSelect) => ({
   id: t.id,
@@ -37,7 +41,7 @@ rotaReceber.get("/", async (c) => {
   const lista = await d
     .select()
     .from(receber)
-    .where(and(eq(receber.empresaId, c.get("user").empresaId), eq(receber.ambiente, env().NFSE_AMBIENTE), extra[filtro]))
+    .where(and(eq(receber.empresaId, c.get("user").empresaId), doAmbiente(env().NFSE_AMBIENTE), extra[filtro]))
     .orderBy(asc(receber.venc));
   return c.json(lista.map(receberParaApi));
 });

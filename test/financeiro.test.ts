@@ -59,6 +59,15 @@ describe("contas a receber", () => {
   });
 });
 
+describe("recibos sem nota", () => {
+  it("aparecem em qualquer ambiente, na lista e no painel", async () => {
+    await d.insert(receber).values({ empresaId, ambiente: "producao", descricao: "Recibo", cliente: "Cliente", valor: 50_00, venc: hoje });
+    const e = await comoEmpresa();
+    expect(await (await e.get("/api/receber")).json()).toHaveLength(1);
+    expect(await (await e.get("/api/painel")).json()).toMatchObject({ aReceberAberto: 50 });
+  });
+});
+
 describe("contas a pagar", () => {
   it("valida a conta nova como o front", async () => {
     const e = await comoEmpresa();

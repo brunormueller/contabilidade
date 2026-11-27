@@ -7,7 +7,7 @@ import { env } from "../env.js";
 import { addDias, fimDoMes, hojeBR } from "../lib/datas.js";
 import type { AppEnv } from "../tipos.js";
 import { pagarParaApi } from "./pagar.js";
-import { receberParaApi } from "./receber.js";
+import { doAmbiente, receberParaApi } from "./receber.js";
 
 export const rotaPainel = new Hono<AppEnv>();
 
@@ -39,7 +39,7 @@ rotaPainel.get("/", async (c) => {
   const abertos = await d
     .select()
     .from(receber)
-    .where(and(eq(receber.empresaId, empresaId), eq(receber.ambiente, amb), isNull(receber.recebidoEm)))
+    .where(and(eq(receber.empresaId, empresaId), doAmbiente(amb), isNull(receber.recebidoEm)))
     .orderBy(asc(receber.venc));
   const vencidos = abertos.filter((t) => t.venc < hoje);
 

@@ -9,6 +9,7 @@ import { csv, dec } from "../lib/csv.js";
 import { fimDoMes, fmtDataBR, MES } from "../lib/datas.js";
 import { invalido } from "../lib/erros.js";
 import type { AppEnv } from "../tipos.js";
+import { doAmbiente } from "./receber.js";
 
 export const rotaExportar = new Hono<AppEnv>();
 
@@ -43,7 +44,7 @@ async function dadosDoMes(c: Context<AppEnv>) {
   const rec = await d
     .select()
     .from(receber)
-    .where(and(eq(receber.empresaId, empresaId), eq(receber.ambiente, amb), gte(receber.recebidoEm, de), lte(receber.recebidoEm, ate)));
+    .where(and(eq(receber.empresaId, empresaId), doAmbiente(amb), gte(receber.recebidoEm, de), lte(receber.recebidoEm, ate)));
   const pag = await d
     .select()
     .from(pagar)
