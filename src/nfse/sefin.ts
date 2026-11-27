@@ -1,9 +1,8 @@
-// Contrato entre a fila e a API da Sefin Nacional. A fila só conhece este contrato; o cliente
-// HTTP com mTLS (etapa 11) o implementa quando o Swagger confirmar campos, codificação e
-// formato de erro. Rotas confirmadas no manual do Emissor Público: POST /nfse,
-// GET /nfse/{chaveAcesso}, GET /dps/{id}.
+// Contrato entre a fila e a API da Sefin Nacional. A fila só conhece este contrato;
+// sefinHttp.ts o implementa e os testes trocam pelo simulador.
 import type { Pfx } from "../cert/pfx.js";
 import type { Ambiente } from "../env.js";
+import { clienteSefin } from "./sefinHttp.js";
 
 /** O que voltou da Sefin, como texto, para guardar junto com a nota. */
 export type Bruto = { http?: number; corpo?: string };
@@ -53,13 +52,11 @@ export type FabricaSefin = (cert: Pfx, ambiente: Ambiente) => Sefin;
 // verdade: a nota existe e precisa ser buscada pela consulta da DPS.
 export const DPS_JA_EXISTE = "E0014";
 
-let fabrica: FabricaSefin = () => {
-  throw new Error("Cliente da Sefin ainda não implementado (etapa 11: falta o Swagger da API).");
-};
+let fabrica: FabricaSefin = (cert, ambiente) => clienteSefin(cert, ambiente);
 
 export const sefinPara: FabricaSefin = (cert, ambiente) => fabrica(cert, ambiente);
 
-/** Testes trocam pelo simulador; a etapa 11 registra o cliente real. */
+/** Testes e SEFIN_SIMULADA trocam pelo simulador. */
 export function usarSefin(f: FabricaSefin) {
   fabrica = f;
 }
