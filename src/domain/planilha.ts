@@ -14,6 +14,8 @@ export type Padroes = {
   cnpjEmpresa?: string;
   /** a nota vai levar IBS/CBS nesta competência? Se sim, a NBS é obrigatória */
   levaIbsCbs?: (competencia: string) => boolean;
+  /** o serviço é sobre imóvel: a nota precisa do endereço (E0938) */
+  exigeEndereco?: boolean;
 };
 
 /** Endereço do tomador, com os nomes do XSD (TCEndereco). */
@@ -86,7 +88,7 @@ export function codigoMunicipio(v: unknown) {
 }
 
 /** Endereço do tomador: opcional, mas completo quando informado ou quando há ISS retido (E0237). */
-function lerEndereco(g: (k: string) => unknown, issRetido: boolean, errors: string[]): Endereco | null {
+function lerEndereco(g: (k: string) => unknown, issRetido: boolean, imovel: boolean, errors: string[]): Endereco | null {
   const txt = (k: string) => String(g(k) ?? "").trim();
   let cep = soDigitos(txt("cep"));
   // o Excel guarda CEP como número e perde o zero da frente
@@ -94,7 +96,8 @@ function lerEndereco(g: (k: string) => unknown, issRetido: boolean, errors: stri
   const campos = { cep, xLgr: txt("logradouro"), nro: txt("numero"), xCpl: txt("complemento"), xBairro: txt("bairro") };
   const municipio = txt("municipio");
   if (!municipio && !Object.values(campos).some(Boolean)) {
-    if (issRetido) errors.push("ISS retido exige o endereço do tomador: CEP, logradouro, número, bairro e município");
+    const motivo = issRetido ? "ISS retido" : imovel ? "Serviço sobre imóvel" : "";
+    if (motivo) errors.push(`${motivo} exige o endereço do tomador: CEP, logradouro, número, bairro e município`);
     return null;
   }
   const antes = errors.length;
@@ -216,7 +219,7 @@ export function validarLinhas(objs: Record<string, unknown>[], p: Padroes, hoje:
     }
     aliqIss = issRetido && aliqIss != null && aliqIss > 0 ? centavos(aliqIss) / 100 : null;
 
-    const tomadorEnd = lerEndereco(g, issRetido, errors);
+    const tomadorEnd = lerEndereco(g, issRetido, !!p.exigeEndereco, errors);
 
     let vInssRet = String(g("inss") ?? "").trim() === "" ? 0 : parseValor(g("inss"));
     if (!(vInssRet >= 0)) {

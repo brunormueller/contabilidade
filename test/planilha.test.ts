@@ -106,6 +106,7 @@ describe("validarLinhas", () => {
     expect(um({ tomador_municipio: "3550308", tomador_cep: 1310100 }).tomadorEnd).toMatchObject({ cMun: "3550308", cep: "01310100" });
     expect(um(vazio)).toMatchObject({ errors: [], tomadorEnd: null });
     expect(um({ ...vazio, iss_retido: "Sim", aliquota_iss: "3" }).errors.join()).toMatch(/exige o endereço/);
+    expect(validar([{ ...ok, ...vazio }], { ...P, exigeEndereco: true }).rows[0]!.errors.join()).toMatch(/Serviço sobre imóvel/);
     expect(um({ tomador_bairro: "" }).errors.join()).toMatch(/Bairro/);
     expect(um({ tomador_municipio: "Cidade Inexistente" }).errors.join()).toMatch(/Município/);
   });

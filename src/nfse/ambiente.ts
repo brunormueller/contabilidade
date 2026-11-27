@@ -33,6 +33,10 @@ export const LAYOUTS: Record<Ambiente, Layout> = {
   },
 };
 
+// E0938: com estes códigos a DPS leva a unidade imobiliária, com o endereço do imóvel
+const COM_UNIDADE = ["020101", "020201", "020301"];
+export const exigeEnderecoImovel = (amb: Ambiente, cIndOp: string | undefined) => LAYOUTS[amb].imovelPorMunicipio && COM_UNIDADE.includes(cIndOp ?? "");
+
 export const exigeIbsCbs = (amb: Ambiente, competencia: string) => {
   const desde = LAYOUTS[amb].ibsCbsObrigatorioDesde;
   return desde != null && competencia >= desde;

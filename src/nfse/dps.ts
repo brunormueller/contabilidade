@@ -2,7 +2,7 @@
 // Cada escolha abaixo vem do XSD (xsd/) ou de uma regra do Anexo I citada pelo código.
 import type { Endereco } from "../domain/planilha.js";
 import type { Ambiente } from "../env.js";
-import { LAYOUTS, exigeIbsCbs } from "./ambiente.js";
+import { LAYOUTS, exigeEnderecoImovel, exigeIbsCbs } from "./ambiente.js";
 import { g, t } from "./xml.js";
 
 export const NS = "http://www.sped.fazenda.gov.br/nfse";
@@ -86,6 +86,10 @@ export function montarDps(a: { empresa: EmpresaDps; nota: NotaDps; ambiente: Amb
   const ibs = e.ibsCbs;
   // cIndOp 02xxxx = operação sobre bem imóvel (Anexo VII): o IBS é do município do imóvel
   const sobreImovel = lay.imovelPorMunicipio && !!ibs?.cIndOp?.startsWith("02");
+  // o imóvel atendido é o endereço do tomador
+  const unidade = exigeEnderecoImovel(ambiente, ibs?.cIndOp);
+  const end = n.tomadorEnd;
+  if (unidade && !end) throw new ConfigIncompleta("Informe o endereço do tomador: este indicador de operação exige o endereço do imóvel (E0938).");
   const xml =
     `<DPS xmlns="${NS}" versao="${VERSAO}">` +
     `<infDPS Id="${id}">` +
@@ -143,7 +147,12 @@ export function montarDps(a: { empresa: EmpresaDps; nota: NotaDps; ambiente: Amb
           t("indFinal", ibs.indFinal),
           t("cIndOp", ibs.cIndOp),
           lay.indDest === "IBSCBS" && t("indDest", ibs.indDest),
-          sobreImovel && g("imovel", t("cMun", e.cLocPrestacao || e.ibge)),
+          sobreImovel &&
+            g(
+              "imovel",
+              t("cMun", end?.cMun ?? (e.cLocPrestacao || e.ibge)),
+              unidade && end && g("gUnidImob", g("end", t("CEP", end.cep), t("xLgr", end.xLgr), t("nro", end.nro), t("xCpl", end.xCpl), t("xBairro", end.xBairro))),
+            ),
           g(
             "valores",
             g("trib", lay.cstEmGIBSCBS

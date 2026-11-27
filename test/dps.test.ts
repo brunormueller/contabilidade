@@ -73,9 +73,14 @@ describe("DPS contra o XSD oficial", () => {
   });
 
   it("cIndOp de imóvel leva o município do imóvel, na ordem do schema (E0932)", async () => {
-    const com = (cIndOp: string) => montarDps({ empresa: { ...empresa, ibsCbs: { ...IBS, cIndOp } }, nota, ambiente: "producao_restrita", dhEmi }).xml;
+    const tomadorEnd = { cep: "89270000", xLgr: "Rua A", nro: "1", xCpl: "", xBairro: "Centro", cMun: "4208906" };
+    const com = (cIndOp: string, end: typeof tomadorEnd | null = tomadorEnd) =>
+      montarDps({ empresa: { ...empresa, ibsCbs: { ...IBS, cIndOp } }, nota: { ...nota, tomadorEnd: end }, ambiente: "producao_restrita", dhEmi }).xml;
     const xml = com("020201");
-    expect(xml).toMatch(/<cIndOp>020201<\/cIndOp><imovel><cMun>\d{7}<\/cMun><\/imovel><valores>/);
+    // E0938: unidade imobiliária com o endereço atendido, e o município dele
+    expect(xml).toContain("<cIndOp>020201</cIndOp><imovel><cMun>4208906</cMun><gUnidImob><end><CEP>89270000</CEP><xLgr>Rua A</xLgr><nro>1</nro><xBairro>Centro</xBairro></end></gUnidImob></imovel><valores>");
+    expect(() => com("020201", null)).toThrow(/endereço/);
+    expect(com("020401", null)).toMatch(/<imovel><cMun>\d{7}<\/cMun><\/imovel>/);
     expect((await validarXsd(xml, "producao_restrita")).erros.filter((m) => !/Signature/.test(m))).toEqual([]);
     expect(com("100301")).not.toContain("<imovel>");
   });

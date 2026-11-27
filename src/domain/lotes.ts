@@ -8,7 +8,7 @@ import { ConfigIncompleta, idDps, montarDps, type EmpresaDps, type NotaDps } fro
 import { pendenciasFiscais } from "../nfse/pendencias.js";
 import { intParaPct, paraCentavos, paraReais, pctParaInt } from "./dinheiro.js";
 import { carregarEmpresa, reservarDps, resumoCertificado } from "./empresa.js";
-import { exigeIbsCbs } from "../nfse/ambiente.js";
+import { exigeEnderecoImovel, exigeIbsCbs } from "../nfse/ambiente.js";
 import type { Linha, Padroes } from "./planilha.js";
 
 type Empresa = typeof empresa.$inferSelect;
@@ -23,6 +23,7 @@ export const padroesDaEmpresa = (e: Empresa): Padroes => ({
   vencDias: e.vencDias,
   cnpjEmpresa: e.cnpj,
   levaIbsCbs: (comp) => e.ibsCbs != null || exigeIbsCbs(env().NFSE_AMBIENTE, comp),
+  exigeEndereco: exigeEnderecoImovel(env().NFSE_AMBIENTE, e.ibsCbs?.cIndOp),
 });
 
 export const empresaDps = (e: Empresa): EmpresaDps => ({
