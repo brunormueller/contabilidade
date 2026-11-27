@@ -1,4 +1,4 @@
-import { and, count, eq } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../db/client.js";
@@ -23,6 +23,8 @@ const Cfg = z.object({
   razao: z.string().trim().max(150),
   cnpj: z.string().max(20),
   im: z.string().trim().max(30).default(""),
+  // município do CNPJ (E0041); ausente = mantém
+  ibge: z.string().regex(/^\d{7}$/, "Município da empresa deve ter o código IBGE de 7 dígitos.").optional(),
   cServPadrao: z.string().max(20).default(""),
   cNBSPadrao: z.string().max(20).default(""),
   aliqIss: z.number().nullable().default(null),
@@ -73,6 +75,18 @@ rotaEmpresa.put("/", async (c) => {
         .returning({ id: certificados.id });
       certDesativado = des.length > 0;
     }
+    const ibge = b.ibge ?? atual.ibge;
+    if (ibge !== atual.ibge) {
+      const daEmpresa = eq(notas.empresaId, empresaId);
+      const [incertas] = await tx.select({ n: count() }).from(notas).where(and(daEmpresa, inArray(notas.status, ["processando", "verificar"])));
+      if (incertas!.n > 0) throw invalido("Há notas aguardando resposta da Sefin. Espere terminarem para mudar o município.");
+      // o Id da DPS leva o município ("DPS" + 7 dígitos); nota que ainda não virou NFS-e acompanha
+      await tx
+        .update(notas)
+        .set({ idDps: sql`'DPS' || ${ibge}::text || substr(${notas.idDps}, 11)` })
+        .where(and(daEmpresa, inArray(notas.status, ["fila", "rejeitada"])));
+    }
+
     const usado = await maiorDpsUsado(tx, empresaId, amb, b.serie);
     if (b.proxDPS <= usado) throw invalido(`O próximo nº da DPS precisa ser maior que ${usado}, o último já usado nesta série.`);
 
@@ -82,13 +96,14 @@ rotaEmpresa.put("/", async (c) => {
         razao: b.razao || "Sua empresa",
         cnpj,
         im: b.im,
+        ibge,
         cTribNacPadrao: cServ,
         cNbsPadrao: nbs,
         aliqIssPadrao: b.aliqIss != null ? pctParaInt(b.aliqIss) : null,
         vencDias: b.vencDias,
         serieDps: b.serie,
         ...(b.pTotTribSN !== undefined && { pTotTribSn: b.pTotTribSN == null ? null : pctParaInt(b.pTotTribSN) }),
-        ...(b.cLocPrestacao !== undefined && { cLocPrestacao: b.cLocPrestacao === atual.ibge ? "" : b.cLocPrestacao }),
+        ...(b.cLocPrestacao !== undefined && { cLocPrestacao: b.cLocPrestacao === ibge ? "" : b.cLocPrestacao }),
         ...(b.ibsCbs !== undefined && { ibsCbs: b.ibsCbs }),
         atualizadoEm: new Date(),
       })

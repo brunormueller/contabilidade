@@ -59,8 +59,8 @@ auth.post("/logout", async (c) => {
 auth.get("/me", async (c) => {
   const { sessaoId: _s, ...u } = c.get("user");
   // nome da empresa para o topo da tela: o funcionário não lê /api/empresa
-  const [e] = await (await db()).select({ razao: empresa.razao }).from(empresa).where(eq(empresa.id, u.empresaId));
-  return c.json({ usuario: u, ambiente: env().NFSE_AMBIENTE, empresa: e?.razao ?? "" });
+  const [e] = await (await db()).select({ razao: empresa.razao, ibge: empresa.ibge }).from(empresa).where(eq(empresa.id, u.empresaId));
+  return c.json({ usuario: u, ambiente: env().NFSE_AMBIENTE, empresa: e?.razao ?? "", ibge: e?.ibge ?? "" });
 });
 
 auth.put("/senha", async (c) => {

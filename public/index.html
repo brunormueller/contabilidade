@@ -1598,7 +1598,7 @@
         <div class="sidetop">
           <div class="brand">
             <div class="mark" id="empMark" aria-hidden="true"></div>
-            <div><b id="empNome"></b><small>Jaraguá do Sul/SC</small></div>
+            <div><b id="empNome"></b><small id="empCidade"></small></div>
           </div>
           <span
             class="env"
@@ -1837,7 +1837,7 @@
         me = r.usuario;
         ambiente = r.ambiente;
         // funcionário não lê os dados fiscais; basta o nome para o topo
-        if (me.perfil === "funcionario") empresa = { razao: r.empresa, pendencias: [], cert: null };
+        if (me.perfil === "funcionario") empresa = { razao: r.empresa, ibge: r.ibge, pendencias: [], cert: null };
         else await carregarEmpresa();
       }
       async function entrar(email, senha) {
@@ -1931,6 +1931,12 @@
         ["config", "Empresa e certificado", ["empresa"]],
       ];
       const isEmp = () => me && me.perfil === "empresa";
+      // cidades da região, para mostrar o nome; outras aparecem pelo código IBGE
+      const CIDADES = {
+        4202107: "Barra Velha", 4204509: "Corupá", 4206504: "Guaramirim", 4208906: "Jaraguá do Sul",
+        4209102: "Joinville", 4210605: "Massaranduba", 4216354: "São João do Itaperiú", 4217402: "Schroeder",
+      };
+      const cidade = (ibge) => (CIDADES[ibge] ? `${CIDADES[ibge]}/SC` : ibge ? `IBGE ${ibge}` : "");
       const podeEmitir = () => me && (me.perfil === "empresa" || me.perfil === "contador");
       const iniciais = (n) =>
         String(n || "?")
@@ -1949,6 +1955,7 @@
       function renderShell() {
         const nome = ((empresa && empresa.razao) || "").trim() || "Sua empresa";
         document.getElementById("empNome").textContent = nome;
+        document.getElementById("empCidade").textContent = cidade(empresa && empresa.ibge);
         document.getElementById("empMark").textContent = nome
           .charAt(0)
           .toUpperCase();
@@ -2761,7 +2768,7 @@
     ${restrita() ? '<section class="stampnote">Produção restrita. Sem validade fiscal.</section>' : ""}
     ${n.status === "cancelada" ? `<section class="cancelled">Nota cancelada em ${fmtDateTime(canc && canc.dhCanc)}. Motivo: ${esc(canc && canc.xMotivo)}</section>` : ""}
     ${n.status === "cancelamento_pendente" ? `<section class="cancelled">Cancelamento pedido e aguardando confirmação da Sefin. Motivo: ${esc(canc && canc.xMotivo)}</section>` : ""}
-    <section><h3>Prestador</h3>${esc(e.razao)}<br>CNPJ ${esc(fmtDoc(e.cnpj))}${e.im ? `, IM ${esc(e.im)}` : ""}<br>Jaraguá do Sul/SC, optante pelo Simples Nacional</section>
+    <section><h3>Prestador</h3>${esc(e.razao)}<br>CNPJ ${esc(fmtDoc(e.cnpj))}${e.im ? `, IM ${esc(e.im)}` : ""}<br>${esc(cidade(e.ibge))}, optante pelo Simples Nacional</section>
     <section><h3>Tomador</h3>${esc(n.tomador.nome)}<br>${n.tomador.doc.length === 14 ? "CNPJ" : "CPF"} ${esc(fmtDoc(n.tomador.doc))}${n.tomador.email ? `<br>${esc(n.tomador.email)}` : ""}</section>
     <section><h3>Serviço</h3>${esc(n.descricao)}<br><span class="muted">Código de tributação nacional ${fmtServ(n.cServ)}${n.nbs ? `, NBS ${fmtNBS(n.nbs)}` : ""}</span></section>
     <section><h3>Datas</h3>Processada em ${fmtDateTime(n.dhProc)}, competência ${fmtDate(n.competencia)}, DPS série ${esc(n.serie)} nº ${n.nDPS}</section>
@@ -3139,7 +3146,7 @@
       <div class="field" style="grid-column:1/-1"><label for="cRaz">Razão social</label><input id="cRaz" value="${esc(e.razao)}" maxlength="150"></div>
       <div class="field"><label for="cCnpj">CNPJ</label><input id="cCnpj" value="${esc(fmtDoc(e.cnpj))}"></div>
       <div class="field"><label for="cIm">Inscrição municipal</label><input id="cIm" value="${esc(e.im)}" maxlength="30"></div>
-      <div class="field"><label>Município</label><input value="Jaraguá do Sul/SC (IBGE ${esc(e.ibge)})" disabled></div>
+      <div class="field"><label for="cIbge">Município do CNPJ (código IBGE)</label><input id="cIbge" inputmode="numeric" maxlength="7" list="cidades" value="${esc(e.ibge)}"><datalist id="cidades">${Object.entries(CIDADES).map(([c, n]) => `<option value="${c}">${n}/SC</option>`).join("")}</datalist><small class="muted">${esc(cidade(e.ibge))}</small></div>
       <div class="field"><label>Regime</label><input value="Simples Nacional, ME/EPP" disabled></div>
       <div class="field"><label for="cServ">Código de serviço padrão</label><input id="cServ" value="${esc(e.cServPadrao ? fmtServ(e.cServPadrao) : "")}" placeholder="Ex.: 01.07.01"></div>
       <div class="field"><label for="cNbs">Código NBS padrão</label><input id="cNbs" value="${esc(e.cNBSPadrao ? fmtNBS(e.cNBSPadrao) : "")}" placeholder="Ex.: 1.1502.10.00"></div>
@@ -3185,6 +3192,7 @@
           razao: g("cRaz"),
           cnpj: g("cCnpj"),
           im: g("cIm"),
+          ibge: digits(g("cIbge")),
           cServPadrao: g("cServ"),
           cNBSPadrao: g("cNbs"),
           aliqIss: aliq,
@@ -3192,7 +3200,8 @@
           serie: g("cSerie") || "900",
           proxDPS: Math.max(1, parseInt(g("cDps")) || 1),
           pTotTribSN: pTot,
-          cLocPrestacao: digits(g("cLocPrest")),
+          // campo no padrão (igual ao município antigo) acompanha o município novo
+          cLocPrestacao: digits(g("cLocPrest")) === empresa.ibge ? digits(g("cIbge")) : digits(g("cLocPrest")),
           ibsCbs,
         });
         empresa = r;

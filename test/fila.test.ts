@@ -75,6 +75,20 @@ describe("criar lote", () => {
     expect((await (await c.get("/api/empresa")).json()) as { proxDPS: number }).toMatchObject({ proxDPS: 1 });
   });
 
+  it("mudar o município da empresa atualiza o Id das notas que ainda não saíram", async () => {
+    const { c, lote } = await novoLote();
+    const atual = (await (await c.get("/api/empresa")).json()) as Record<string, unknown>;
+    const corpo = { razao: "Empresa", cnpj: CNPJ_EMPRESA, im: "", cServPadrao: "010701", cNBSPadrao: "115021000", aliqIss: null, vencDias: 10, serie: "900", proxDPS: 3, cLocPrestacao: "4206504", ibge: "4206504" };
+    expect((await c.put("/api/empresa", { ...corpo, ibge: "42" })).status).toBe(400);
+    expect((await c.put("/api/empresa", corpo)).status).toBe(200);
+    expect(atual.ibge).toBe("4208906");
+    expect(await (await c.get("/api/empresa")).json()).toMatchObject({ ibge: "4206504", cLocPrestacao: "4206504" });
+    const ids = (await d.select().from(notas)).map((n) => n.idDps);
+    expect(ids.every((i) => i.startsWith(`DPS42065042${CNPJ_EMPRESA}`) && i.length === 45)).toBe(true);
+    await c.post(`/api/lotes/${lote.id}/processar`);
+    expect(sefin.chamadas.emitir.sort()).toEqual(ids.sort());
+  });
+
   it("contador importa, processa e reprocessa o lote", async () => {
     const k = await comoContador();
     const r = await k.post("/api/lotes", { chave: randomUUID(), linhas: [linha()] });
