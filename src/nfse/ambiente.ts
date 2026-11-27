@@ -12,6 +12,8 @@ export type Layout = {
   descAntesDoNbs: boolean;
   /** CST e cClassTrib dentro de valores/trib/gIBSCBS (produção) ou direto em valores/trib (NT 009) */
   cstEmGIBSCBS: boolean;
+  /** onde fica indDest: no infDPS, depois do tomador e sempre, ou dentro do grupo IBSCBS */
+  indDest: "infDPS" | "IBSCBS";
   /** cIndOp obrigatório no grupo IBSCBS */
   cIndOpObrigatorio: boolean;
   /** Regra E0855: grupo IBSCBS obrigatório a partir desta competência */
@@ -20,11 +22,11 @@ export type Layout = {
 
 export const LAYOUTS: Record<Ambiente, Layout> = {
   producao: {
-    tpAmb: "1", xsdDir: "producao", finNFSe: "IBSCBS", descAntesDoNbs: true, cstEmGIBSCBS: true, cIndOpObrigatorio: true,
+    tpAmb: "1", xsdDir: "producao", finNFSe: "IBSCBS", indDest: "IBSCBS", descAntesDoNbs: true, cstEmGIBSCBS: true, cIndOpObrigatorio: true,
     ibsCbsObrigatorioDesde: null,
   },
   producao_restrita: {
-    tpAmb: "2", xsdDir: "producao-restrita", finNFSe: "infDPS", descAntesDoNbs: false, cstEmGIBSCBS: false, cIndOpObrigatorio: false,
+    tpAmb: "2", xsdDir: "producao-restrita", finNFSe: "infDPS", indDest: "infDPS", descAntesDoNbs: false, cstEmGIBSCBS: false, cIndOpObrigatorio: false,
     ibsCbsObrigatorioDesde: "2026-10-01",
   },
 };

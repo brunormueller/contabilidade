@@ -103,6 +103,8 @@ export function montarDps(a: { empresa: EmpresaDps; nota: NotaDps; ambiente: Amb
       g("regTrib", t("opSimpNac", "3"), t("regApTribSN", "1"), t("regEspTrib", "0")),
     ) +
     g("toma", tomaDoc, t("xNome", n.tomadorNome), t("email", n.tomadorEmail)) +
+    // 0 = o destinatário é o próprio tomador (E0910: não enviamos o grupo "dest")
+    (lay.indDest === "infDPS" ? t("indDest", ibs?.indDest ?? "0") : "") +
     g("serv", g("locPrest", t("cLocPrestacao", e.cLocPrestacao || e.ibge)), cServ) +
     g(
       "valores",
@@ -121,7 +123,7 @@ export function montarDps(a: { empresa: EmpresaDps; nota: NotaDps; ambiente: Amb
           lay.finNFSe === "IBSCBS" && t("finNFSe", "0"),
           t("indFinal", ibs.indFinal),
           t("cIndOp", ibs.cIndOp),
-          t("indDest", ibs.indDest),
+          lay.indDest === "IBSCBS" && t("indDest", ibs.indDest),
           g(
             "valores",
             g("trib", lay.cstEmGIBSCBS
