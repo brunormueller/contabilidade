@@ -16,6 +16,11 @@ const ok = {
   iss_retido: "Não",
   aliquota_iss: "",
   valor_inss_retido: "",
+  tomador_cep: "89270-000",
+  tomador_logradouro: "Rua 28 de Agosto",
+  tomador_numero: "122",
+  tomador_bairro: "Nova Esperança",
+  tomador_municipio: "Guaramirim",
   competencia: "",
   vencimento: "",
 };
@@ -91,6 +96,18 @@ describe("validarLinhas", () => {
     [{ descricao: "x".repeat(2001) }, "Descrição passa de 2000 caracteres"],
   ])("%o => %s", (o, msg) => {
     expect(erros(o)).toContain(msg);
+  });
+
+  it("endereço do tomador: obrigatório com ISS retido, completo quando informado", () => {
+    const um = (o: Record<string, unknown>) => validar([{ ...ok, ...o }]).rows[0]!;
+    const vazio = { tomador_cep: "", tomador_logradouro: "", tomador_numero: "", tomador_bairro: "", tomador_municipio: "" };
+    expect(um({}).tomadorEnd).toEqual({ cep: "89270000", xLgr: "Rua 28 de Agosto", nro: "122", xCpl: "", xBairro: "Nova Esperança", cMun: "4206504" });
+    expect(um({ tomador_municipio: "jaragua do sul/SC" }).tomadorEnd!.cMun).toBe("4208906");
+    expect(um({ tomador_municipio: "3550308", tomador_cep: 1310100 }).tomadorEnd).toMatchObject({ cMun: "3550308", cep: "01310100" });
+    expect(um(vazio)).toMatchObject({ errors: [], tomadorEnd: null });
+    expect(um({ ...vazio, iss_retido: "Sim", aliquota_iss: "3" }).errors.join()).toMatch(/exige o endereço/);
+    expect(um({ tomador_bairro: "" }).errors.join()).toMatch(/Bairro/);
+    expect(um({ tomador_municipio: "Cidade Inexistente" }).errors.join()).toMatch(/Município/);
   });
 
   it("ISS retido sem alíquota em lugar nenhum é erro", () => {

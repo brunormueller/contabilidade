@@ -2272,6 +2272,12 @@
         "valor_inss_retido",
         "competencia",
         "vencimento",
+        "tomador_cep",
+        "tomador_logradouro",
+        "tomador_numero",
+        "tomador_complemento",
+        "tomador_bairro",
+        "tomador_municipio",
       ];
       async function lerArquivo(file) {
         if (typeof XLSX === "undefined") {
@@ -2355,6 +2361,12 @@
           valor_inss_retido: i === 4 ? "170,50" : "",
           competencia: "",
           vencimento: "",
+          tomador_cep: "89270-000",
+          tomador_logradouro: "Rua de Exemplo",
+          tomador_numero: String(100 + i),
+          tomador_complemento: "",
+          tomador_bairro: "Centro",
+          tomador_municipio: "Guaramirim",
         }));
         objs.push({
           tomador_documento: "12.345.678/0001-00",
@@ -2392,6 +2404,12 @@
             "",
             "01/" + todayISO().slice(5, 7) + "/" + todayISO().slice(0, 4),
             addDays(todayISO(), 10).split("-").reverse().join("/"),
+            "89270-000",
+            "Rua de Exemplo",
+            "100",
+            "",
+            "Centro",
+            "Guaramirim",
           ],
         ]);
         ws["!cols"] = [
@@ -2407,6 +2425,12 @@
           { wch: 18 },
           { wch: 13 },
           { wch: 13 },
+          { wch: 13 },
+          { wch: 30 },
+          { wch: 10 },
+          { wch: 18 },
+          { wch: 20 },
+          { wch: 20 },
         ];
         const ins = XLSX.utils.aoa_to_sheet([
           ["Coluna", "Obrigatória", "Como preencher"],
@@ -2454,6 +2478,12 @@
             "Não",
             "Data de vencimento da cobrança. Vazio usa o prazo padrão da empresa",
           ],
+          ["tomador_cep", "Se ISS retido", "CEP com 8 dígitos"],
+          ["tomador_logradouro", "Se ISS retido", "Rua, avenida etc., sem o número"],
+          ["tomador_numero", "Se ISS retido", "Número do endereço, ou S/N"],
+          ["tomador_complemento", "Não", "Sala, bloco, apartamento"],
+          ["tomador_bairro", "Se ISS retido", "Bairro"],
+          ["tomador_municipio", "Se ISS retido", "Cidade de SC pelo nome, ou código IBGE de 7 dígitos"],
           [],
           ["Uma linha por nota. Não altere os nomes das colunas da aba Notas."],
         ]);

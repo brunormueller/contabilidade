@@ -1,5 +1,6 @@
 // Monta a DPS (Declaração de Prestação de Serviço) no leiaute nacional, sem assinatura.
 // Cada escolha abaixo vem do XSD (xsd/) ou de uma regra do Anexo I citada pelo código.
+import type { Endereco } from "../domain/planilha.js";
 import type { Ambiente } from "../env.js";
 import { LAYOUTS, exigeIbsCbs } from "./ambiente.js";
 import { g, t } from "./xml.js";
@@ -26,6 +27,7 @@ export type NotaDps = {
   tomadorDoc: string;
   tomadorNome: string;
   tomadorEmail: string;
+  tomadorEnd?: Endereco | null;
   descricao: string;
   cTribNac: string;
   cNbs: string;
@@ -104,7 +106,22 @@ export function montarDps(a: { empresa: EmpresaDps; nota: NotaDps; ambiente: Amb
       // ME/EPP apurando pelo SN; E0175: regEspTrib = 0 nesse caso
       g("regTrib", t("opSimpNac", "3"), t("regApTribSN", "1"), t("regEspTrib", "0")),
     ) +
-    g("toma", tomaDoc, t("xNome", n.tomadorNome), t("email", n.tomadorEmail)) +
+    g(
+      "toma",
+      tomaDoc,
+      t("xNome", n.tomadorNome),
+      // E0237: obrigatório quando o tomador retém o ISS
+      n.tomadorEnd &&
+        g(
+          "end",
+          g("endNac", t("cMun", n.tomadorEnd.cMun), t("CEP", n.tomadorEnd.cep)),
+          t("xLgr", n.tomadorEnd.xLgr),
+          t("nro", n.tomadorEnd.nro),
+          t("xCpl", n.tomadorEnd.xCpl),
+          t("xBairro", n.tomadorEnd.xBairro),
+        ),
+      t("email", n.tomadorEmail),
+    ) +
     // 0 = o destinatário é o próprio tomador (E0910: não enviamos o grupo "dest")
     (lay.indDest === "infDPS" ? t("indDest", ibs?.indDest ?? "0") : "") +
     g("serv", g("locPrest", t("cLocPrestacao", e.cLocPrestacao || e.ibge)), cServ) +

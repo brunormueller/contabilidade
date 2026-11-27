@@ -3,6 +3,7 @@
 // datas do Excel chegam como número serial ou texto, nunca como objeto Date.
 import { addDias, diaValido } from "../lib/datas.js";
 import { normDoc, soDigitos, tipoDoc } from "./documentos.js";
+import { MUNICIPIOS_SC } from "./municipiosSC.js";
 
 export type Padroes = {
   cServPadrao: string;
@@ -15,11 +16,15 @@ export type Padroes = {
   levaIbsCbs?: (competencia: string) => boolean;
 };
 
+/** Endereço do tomador, com os nomes do XSD (TCEndereco). */
+export type Endereco = { cep: string; xLgr: string; nro: string; xCpl: string; xBairro: string; cMun: string };
+
 export type Linha = {
   i: number;
   doc: string;
   nome: string;
   email: string;
+  tomadorEnd: Endereco | null;
   descricao: string;
   valor: number; // reais
   cServ: string;
@@ -38,6 +43,12 @@ const COLS: Record<string, string[]> = {
   doc: ["tomador_documento", "cnpj", "cpf", "cnpj/cpf", "cpf/cnpj", "cnpj_cpf", "cpf_cnpj", "documento", "doc", "tomador cnpj"],
   nome: ["tomador_nome", "nome", "cliente", "tomador", "razao social", "razao_social", "nome do cliente"],
   email: ["tomador_email", "email", "e-mail", "email do cliente"],
+  cep: ["tomador_cep", "cep"],
+  logradouro: ["tomador_logradouro", "logradouro", "endereco", "rua"],
+  numero: ["tomador_numero", "numero", "nro", "num"],
+  complemento: ["tomador_complemento", "complemento"],
+  bairro: ["tomador_bairro", "bairro"],
+  municipio: ["tomador_municipio", "municipio", "cidade", "codigo_municipio"],
   descricao: ["descricao", "descricao do servico", "discriminacao", "discriminacao do servico", "servico", "historico"],
   valor: ["valor", "valor do servico", "valor_servico", "valor total", "total"],
   cServ: ["codigo_servico", "codigo", "cod servico", "codigo do servico", "codigo de tributacao", "ctribnac", "item"],
@@ -64,6 +75,38 @@ const norm = (s: unknown) =>
     .replace(/_/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+const POR_NOME = new Map(Object.entries(MUNICIPIOS_SC).map(([codigo, nome]) => [norm(nome), codigo]));
+
+/** Código IBGE de 7 dígitos, ou nome de cidade de Santa Catarina ("Guaramirim", "Guaramirim/SC"). */
+export function codigoMunicipio(v: unknown) {
+  const s = String(v ?? "").trim();
+  if (/^\d{7}$/.test(s)) return s;
+  return POR_NOME.get(norm(s.replace(/\s*[/-]\s*sc$/i, ""))) ?? "";
+}
+
+/** Endereço do tomador: opcional, mas completo quando informado ou quando há ISS retido (E0237). */
+function lerEndereco(g: (k: string) => unknown, issRetido: boolean, errors: string[]): Endereco | null {
+  const txt = (k: string) => String(g(k) ?? "").trim();
+  let cep = soDigitos(txt("cep"));
+  // o Excel guarda CEP como número e perde o zero da frente
+  if (typeof g("cep") === "number" && cep.length === 7) cep = `0${cep}`;
+  const campos = { cep, xLgr: txt("logradouro"), nro: txt("numero"), xCpl: txt("complemento"), xBairro: txt("bairro") };
+  const municipio = txt("municipio");
+  if (!municipio && !Object.values(campos).some(Boolean)) {
+    if (issRetido) errors.push("ISS retido exige o endereço do tomador: CEP, logradouro, número, bairro e município");
+    return null;
+  }
+  const antes = errors.length;
+  if (!/^\d{8}$/.test(cep)) errors.push("CEP do tomador precisa ter 8 dígitos");
+  if (!campos.xLgr || campos.xLgr.length > 255) errors.push("Logradouro do tomador vazio ou longo demais");
+  if (!campos.nro || campos.nro.length > 60) errors.push('Número do endereço vazio ou longo demais (use "S/N" se não houver)');
+  if (!campos.xBairro || campos.xBairro.length > 60) errors.push("Bairro do tomador vazio ou longo demais");
+  if (campos.xCpl.length > 156) errors.push("Complemento passa de 156 caracteres");
+  const cMun = codigoMunicipio(municipio);
+  if (!cMun) errors.push("Município do tomador não reconhecido: escreva a cidade de SC ou o código IBGE de 7 dígitos");
+  return errors.length > antes ? null : { ...campos, cMun };
+}
 
 export function mapearColunas(cabecalho: string[]) {
   const map: Record<string, string> = {};
@@ -173,6 +216,8 @@ export function validarLinhas(objs: Record<string, unknown>[], p: Padroes, hoje:
     }
     aliqIss = issRetido && aliqIss != null && aliqIss > 0 ? centavos(aliqIss) / 100 : null;
 
+    const tomadorEnd = lerEndereco(g, issRetido, errors);
+
     let vInssRet = String(g("inss") ?? "").trim() === "" ? 0 : parseValor(g("inss"));
     if (!(vInssRet >= 0)) {
       errors.push("Valor do INSS retido inválido");
@@ -201,6 +246,7 @@ export function validarLinhas(objs: Record<string, unknown>[], p: Padroes, hoje:
       doc,
       nome,
       email,
+      tomadorEnd,
       descricao,
       valor,
       cServ,

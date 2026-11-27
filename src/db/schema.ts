@@ -188,6 +188,7 @@ export const notas = pgTable(
     tomadorDoc: text().notNull(),
     tomadorNome: text().notNull(),
     tomadorEmail: text().notNull().default(""),
+    tomadorEnd: jsonb().$type<{ cep: string; xLgr: string; nro: string; xCpl: string; xBairro: string; cMun: string }>(),
     descricao: text().notNull(),
     cTribNac: text().notNull(),
     cNbs: text().notNull().default(""),

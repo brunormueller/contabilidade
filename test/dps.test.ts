@@ -80,6 +80,14 @@ describe("DPS contra o XSD oficial", () => {
     expect(com("100301")).not.toContain("<imovel>");
   });
 
+  it.each(["producao_restrita", "producao"] as const)("%s: endereço do tomador entra depois do nome e passa no XSD (E0237)", async (ambiente) => {
+    const tomadorEnd = { cep: "89270000", xLgr: "Rua 28 de Agosto", nro: "122", xCpl: "Sala 1", xBairro: "Nova Esperança", cMun: "4206504" };
+    const e = { ...empresa, ibsCbs: IBS };
+    const { xml } = montarDps({ empresa: e, nota: { ...nota, issRetido: true, aliqIss: 381, tomadorEnd }, ambiente, dhEmi });
+    expect(xml).toMatch(/<\/xNome><end><endNac><cMun>4206504<\/cMun><CEP>89270000<\/CEP><\/endNac><xLgr>Rua 28 de Agosto<\/xLgr><nro>122<\/nro><xCpl>Sala 1<\/xCpl><xBairro>Nova Esperança<\/xBairro><\/end>/);
+    expect((await validarXsd(xml, ambiente)).erros.filter((m) => !/Signature/.test(m))).toEqual([]);
+  });
+
   it("produção exige cIndOp no grupo IBS/CBS", () => {
     const e = { ...empresa, ibsCbs: { ...IBS, cIndOp: undefined } };
     expect(() => montarDps({ empresa: e, nota, ambiente: "producao", dhEmi })).toThrow(/cIndOp/);

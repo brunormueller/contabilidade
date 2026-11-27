@@ -36,6 +36,13 @@
       "when": 1794447400212,
       "tag": "0004_faturamento",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795820026616,
+      "tag": "0005_endereco_tomador",
+      "breakpoints": true
     }
   ]
 }
