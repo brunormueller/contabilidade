@@ -82,6 +82,8 @@ export function montarDps(a: { empresa: EmpresaDps; nota: NotaDps; ambiente: Amb
   );
 
   const ibs = e.ibsCbs;
+  // cIndOp 02xxxx = operação sobre bem imóvel (Anexo VII): o IBS é do município do imóvel
+  const sobreImovel = lay.imovelPorMunicipio && !!ibs?.cIndOp?.startsWith("02");
   const xml =
     `<DPS xmlns="${NS}" versao="${VERSAO}">` +
     `<infDPS Id="${id}">` +
@@ -124,6 +126,7 @@ export function montarDps(a: { empresa: EmpresaDps; nota: NotaDps; ambiente: Amb
           t("indFinal", ibs.indFinal),
           t("cIndOp", ibs.cIndOp),
           lay.indDest === "IBSCBS" && t("indDest", ibs.indDest),
+          sobreImovel && g("imovel", t("cMun", e.cLocPrestacao || e.ibge)),
           g(
             "valores",
             g("trib", lay.cstEmGIBSCBS
